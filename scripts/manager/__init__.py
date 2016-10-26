@@ -1,2 +1,1 @@
-def run_all():
-    pass
+from .machine import Machine
