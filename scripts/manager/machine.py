@@ -1,9 +1,10 @@
 import os
-import pickle
 import subprocess
 import itertools
 import tempfile
 import subprocess as sp
+
+from .cache import Cache
 
 class Machine:
     class Hostfile:
@@ -56,42 +57,10 @@ class Machine:
             res.append((bench, nodes, env, sched, affinity, run))
         return res
 
-    class Cache:
-        def __init__(self, machine):
-            self.machine = machine
-            name = '.{}.pkl'.format(type(self.machine).__name__)
-            if not os.path.isfile(name) or not self.machine.args.cache:
-                self.compiled = dict()
-                return
-            with open(name, 'rb') as cache:
-                self.compiled = pickle.load(cache)
-
-        def __contains__(self, key):
-            return key in self.compiled
-
-        def add(self, key):
-            self.compiled[key] = key.fail
-            self.__save()
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc_value, traceback):
-            self.__save()
-
-        def __save(self):
-            if not self.machine.args.cache:
-                return
-            name = '.{}.pkl'.format(type(self.machine).__name__)
-            with open(name, 'wb') as cache:
-                pickle.dump(self.compiled, cache, 0)
-                            #pickle.HIGHEST_PROTOCOL)
-
-
     def compile(self):
         """ Compile benchmarks """
 
-        with self.Cache(self) as cache:
+        with Cache(self) as cache:
             env = self.env.copy()
 
             # execute compilation command
@@ -99,7 +68,9 @@ class Machine:
                 b = b_l[0]
                 if b in cache:
                     b_l[0].fail = cache.compiled[b]
+                    print("Skipping: {}".format(b))
                     continue
+                print("Compiling: {}".format(b))
                 b.compile(env)
 
                 cache.add(b)

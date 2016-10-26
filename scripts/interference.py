@@ -9,27 +9,7 @@ import csv
 
 from argparse import ArgumentParser
 
-class Benchmark:
-    def __init__(self):
-        self.fail = False
-
-    def compile(self, env):
-        p = sp.Popen(self.compile_command,
-                     cwd = self.wd,
-                     env = env,
-                     stderr = sp.PIPE,
-                     stdout = sp.PIPE,
-                     shell = True)
-        err = p.stderr.read().decode('UTF-8')
-        out = p.stdout.read().decode('UTF-8')
-        p.communicate()
-        if (p.returncode):
-            self.fail = True
-            print("Failed to complie benchmark")
-            print(out)
-            print(err)
-
-class Npb(Benchmark):
+class Npb(manager.Benchmark):
     """ Class representing an npb benchmark """
     def __init__(self, prog, np, size, wd):
         super(Npb, self).__init__()
@@ -54,35 +34,30 @@ class Npb(Benchmark):
         return "{}.{}.{} {}".format(self.prog, self.size, self.np, self.fail)
 
 
-class BenchGroup:
-    """ Class representing a group of NPB benchmarks """
-    def __init__(self, BenchmarkClass, progs, sizes, np, wd):
-        self.benchmarks = tuple((BenchmarkClass(prog, np, size, wd),)
-                            for (prog, np, size)
-                            in itertools.product(progs, np, sizes))
-
-    def __add__(self, other):
-        self.benchmarks = self.benchmarks + other.benchmarks
-        return self
-
 class PlanetaOS(manager.Machine):
     def __init__(self, args):
         base =  "/home/desertfox/research/projects/ffmk/interference-bench/"
-        wd = base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/"
-        npbmz_group = BenchGroup(Npb, progs = ("sp-mz", "bt-mz"),
-                                 sizes = ("W", "S"),
-                                 np = (2, 4, 8),
-                                 wd = wd)
 
-        wd = base + "/NPB3.3.1/NPB3.3-MPI/"
-        npb_group = BenchGroup(Npb,
-                               progs = ("bt", "cg", "ep",
-                                         "ft", "is", "lu",
-                                         "mg", "sp"),
+        self.group = \
+            manager.BenchGroup(Npb, progs = ("bt-mz",),
+                               sizes = ("W", "S"),
+                               np = (2, 4),
+                               wd = base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
+            manager.BenchGroup(Npb, progs = ("sp-mz",),
                                sizes = ("W", "S"),
                                np = (2, 4, 8),
-                               wd = wd)
-        self.group = npbmz_group + npb_group
+                               wd = base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
+            manager.BenchGroup(Npb,
+                               progs = ("bt", "sp"),
+                               sizes = ("W", "S"),
+                               np = (4, 9),
+                               wd = base + "/NPB3.3.1/NPB3.3-MPI/") + \
+            manager.BenchGroup(Npb,
+                               progs = ("cg", "ep", "ft",
+                                        "is", "lu", "mg"),
+                               sizes = ("W", "S"),
+                               np = (2, 4, 8),
+                               wd = base + "/NPB3.3.1/NPB3.3-MPI/")
 
         self.mpiexec = 'mpirun'
         self.mpiexec_np = '-np'
