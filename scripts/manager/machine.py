@@ -30,7 +30,6 @@ class Machine:
     def __init__(self, args):
         self.args = args
 
-        self.env = os.environ.copy()
         self.env['INTERFERENCE_PREFIX'] = self.prefix
         self.env['INTERFERENCE_LOCALID'] = self.localid_var
 
@@ -53,12 +52,10 @@ class Machine:
             env = self.env.copy()
             env['INTERFERENCE_AFFINITY'] = affinity
             env['INTERFERENCE_SCHED'] = sched
-            self.augment_env(env, bench, sched, affinity)
             res.append((bench, nodes, env, sched, affinity, run))
         return res
 
-    def compile(self):
-        """ Compile benchmarks """
+    def compile_benchmarks(self):
 
         with Cache(self) as cache:
             env = self.env.copy()
