@@ -33,11 +33,23 @@ class Machine:
         self.env['INTERFERENCE_PREFIX'] = self.prefix
         self.env['INTERFERENCE_LOCALID'] = self.localid_var
 
+        if args.comm == 'prepare':
+            for l in args.targets:
+                if l not in self.known_libs:
+                    raise Exception("Unknown MPI library requested")
+            self.libs = [self.known_libs[l] for l in args.targets]
+        elif args.comm == 'run':
+            self.libs = [self.known_libs['default'],]
+        else:
+            raise Exception('Unknown command')
+        self.suffix = "{}-{}".format(type(self).__name__,self.libs[0].name)
+
     def get_script_path(self):
         return os.path.dirname(os.path.realpath(__file__))
 
-    def get_interference_path(self):
-        return self.get_script_path() + "/../../lib/libinterference.so"
+    def get_lib(self):
+        lib = "/../../install-{}/usr/local/lib/libinterference.so"
+        return self.get_script_path() + lib.format(self.suffix)
 
 
     def configurations(self):
@@ -130,3 +142,32 @@ class Machine:
 
                 print('='*40)
                 continue
+
+    def compile_libs(self):
+        for lib in self.libs:
+            path = self.get_script_path()
+            build_path = path + '/../../build-' + self.suffix +'/'
+            install_path = path + '/../../install-' + self.suffix +'/'
+            if not os.path.exists(build_path):
+                os.makedirs(build_path)
+            lib.compile_pre='pwd'
+            sequence =  [
+                lib.compile_pre,
+                'cd {}'.format(build_path),
+                'cmake .. {}'.format(lib.compile_flags),
+                'make',
+                'make install DESTDIR='+install_path]
+            command = ' && '.join(filter(lambda x : len(x) > 0, sequence))
+            print(command)
+            p = sp.Popen('/bin/bash',
+                         cwd = build_path,
+                         stdin = sp.PIPE,
+                         stdout = sp.PIPE,
+                         stderr = sp.PIPE)
+            (out, err) = p.communicate(input=command.encode())
+            if p.returncode:
+                print(out.decode('UTF-8'))
+                print(err.decode('UTF-8'))
+                raise Exception("Failed to prepare library.")
+            print(out.decode('UTF-8'))
+            print(err.decode('UTF-8'))

@@ -12,7 +12,7 @@ class Cache:
             self.compiled = pickle.load(cache)
 
     def name(self):
-        return '.{}.pkl'.format(type(self.machine).__name__)
+        return '.{}.pkl'.format(self.machine.suffix)
 
     def __contains__(self, key):
         return key in self.compiled

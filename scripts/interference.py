@@ -39,12 +39,12 @@ class PlanetaOS(manager.Machine):
         base =  "/home/desertfox/research/projects/ffmk/interference-bench/"
 
         self.group = \
-            manager.BenchGroup(Npb, progs = ("bt-mz",),
-                               sizes = ("W", "S"),
+            manager.BenchGroup(Npb, progs = ("bt-mz", "sp-mz"),
+                               sizes = ("S",),
                                np = (2, 4),
                                wd = base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
-            manager.BenchGroup(Npb, progs = ("sp-mz",),
-                               sizes = ("W", "S"),
+            manager.BenchGroup(Npb, progs = ("bt-mz", "sp-mz"),
+                               sizes = ("W",),
                                np = (2, 4, 8),
                                wd = base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
             manager.BenchGroup(Npb,
@@ -63,7 +63,13 @@ class PlanetaOS(manager.Machine):
         self.mpiexec_np = '-np'
         self.mpiexec_hostfile = '-hostfile {}'
 
-        self.preload = '-x LD_PRELOAD={}'.format(self.get_interference_path())
+        self.preload = '-x LD_PRELOAD={}'
+
+        self.known_libs = {
+            'default' : manager.Lib('openmpi')
+        }
+
+
         self.env = os.environ.copy()
 
         self.prefix = 'INTERFERENCE'
@@ -88,7 +94,7 @@ class PlanetaOS(manager.Machine):
     def format_command(self, bench, nodes):
         parameters = " ".join([self.mpiexec_hostfile.format(self.hostfile.path),
                                self.mpiexec_np, str(bench.np),
-                               self.preload,
+                               self.preload.format(self.get_lib()),
                                '-oversubscribe',
                                '--bind-to none'])
         return "{} {} ./bin/{}".format(self.mpiexec, parameters, bench.name)
@@ -127,7 +133,13 @@ class Taurus(manager.Machine):
         self.mpiexec_np = '-np'
         self.mpiexec_hostfile = '-hostfile {}'
 
-        self.preload = 'LD_PRELOAD={}'.format(self.get_interference_path())
+        self.preload = 'LD_PRELOAD={}'
+
+        self.known_libs = {
+            'default' : manager.Lib('mvapich',
+                                    compile_pre='source ~/scr/pi/pi.env',
+                                    compile_flags='')
+        }
 
         self.env = os.environ.copy()
         self.env['OMP_NUM_THREADS'] = '1'
@@ -164,7 +176,7 @@ class Taurus(manager.Machine):
         source = "source {}/scr/pi/pi.env".format(self.env['HOME'])
         return "{} ; taskset 0xFFFFFFFF {} {} {} ./bin/{}".format(source,
                                                                       self.mpiexec, parameters,
-                                                                      self.preload, bench.name)
+                                                                      self.preload.format(self.get_lib()), bench.name)
 
     def correct_guess():
         print(socket.gethostname())
@@ -174,6 +186,13 @@ class Taurus(manager.Machine):
 
 def parse_args():
     parser = ArgumentParser()
+    parser.add_argument('--machine',
+                        help='Which configuration use to run benchmarks',
+                        default='guess')
+    parser.add_argument('--mpi',
+                        help='Which mpi library to work with',
+                        default='default')
+    parser.set_defaults(comm=None)
 
     commands = parser.add_subparsers(help = 'Choose mode of operation')
 
@@ -187,10 +206,20 @@ def parse_args():
                             help='Cache compilation results, use cache if possible.',
                             action='store_true',
                             default=False)
-    run_parser.add_argument('--machine',
-                            help='Which configuration use to run benchmarks',
-                            default='guess')
-    return parser.parse_args()
+    run_parser.set_defaults(comm='run')
+
+    compile_parser = \
+      commands.add_parser('prepare',
+       help='Prepare libinterference for a specific MPI library')
+    compile_parser.add_argument('targets', nargs='*', default=['default'])
+    compile_parser.set_defaults(comm='prepare')
+
+    args = parser.parse_args()
+    if args.comm is None:
+        parser.print_help()
+        raise Exception('No command has been chosen')
+
+    return args
 
 def create_machine(args):
     print(args.machine)
@@ -212,18 +241,21 @@ def main():
 
     machine = create_machine(args)
 
-    machine.compile_benchmarks()
+    if args.comm == 'prepare':
+        machine.compile_libs()
+    elif args.comm == 'run':
+        machine.compile_benchmarks()
 
-    # with open('runtimes.log', 'w') as runtimes_log:
-    with open(args.out, 'w') as runtimes_log:
-        runtimes = csv.writer(runtimes_log)
-        runtimes.writerow(['prog', 'nodes', 'np',
-                           'size', 'run',
-                           'sched', 'affinity', 'cpu',
-                           'rank', 'node', 'iter',
-                           'utime', 'wtime'])
+        # with open('runtimes.log', 'w') as runtimes_log:
+        with open(args.out, 'w') as runtimes_log:
+            runtimes = csv.writer(runtimes_log)
+            runtimes.writerow(['prog', 'nodes', 'np',
+                               'size', 'run',
+                               'sched', 'affinity', 'cpu',
+                               'rank', 'node', 'iter',
+                               'utime', 'wtime'])
 
-        machine.run_benchmarks(runtimes)
+            machine.run_benchmarks(runtimes)
 
 
 
