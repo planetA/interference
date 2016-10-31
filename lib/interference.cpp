@@ -201,4 +201,8 @@ void interference_end()
                 << " ,UTIME: " << utimes[i] << std::endl;
     }
   }
+
+  barrier();
+  std::flush(std::cout);
+  exit(0);
 }

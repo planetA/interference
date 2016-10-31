@@ -25,3 +25,8 @@ void gather_names(const char *my_name, char *names, unsigned name_len)
 {
   MPI_Gather(my_name, name_len, MPI_CHAR, names, name_len, MPI_CHAR, 0, MPI_COMM_WORLD);
 }
+
+void barrier()
+{
+  MPI_Barrier(MPI_COMM_WORLD);
+}
