@@ -31,29 +31,21 @@ class Machine:
         self.args = args
 
         self.env['INTERFERENCE_PREFIX'] = self.prefix
-        self.env['INTERFERENCE_LOCALID'] = self.localid_var
 
-        if args.comm == 'prepare':
-            for l in args.targets:
-                if l not in self.known_libs:
-                    raise Exception("Unknown MPI library requested")
-            self.libs = [self.known_libs[l] for l in args.targets]
-        elif args.comm == 'run':
-            self.libs = [self.known_libs['default'],]
-        else:
-            raise Exception('Unknown command')
-        self.suffix = "{}-{}".format(type(self).__name__,self.libs[0].name)
+        self.suffix = "{}-{}".format(type(self).__name__,self.lib.name)
 
     def get_script_path(self):
         return os.path.dirname(os.path.realpath(__file__))
 
     def get_lib(self):
-        lib = "/../../install-{}/usr/local/lib/libinterference.so"
+        return self.get_lib_path() + 'libinterference.so'
+
+    def get_lib_path(self):
+        lib = "/../../install-{}/usr/local/lib/"
         return self.get_script_path() + lib.format(self.suffix)
 
-
     def configurations(self):
-        confs = tuple(sum(x, ()) for x in
+        confs = tuple(
                       itertools.product(self.benchmarks,
                                         self.schedulers,
                                         self.nodes,
@@ -73,10 +65,10 @@ class Machine:
             env = self.env.copy()
 
             # execute compilation command
-            for b_l in self.benchmarks:
-                b = b_l[0]
+            for b in self.benchmarks:
+                print(b)
                 if b in cache:
-                    b_l[0].fail = cache.compiled[b]
+                    b.fail = cache.compiled[b]
                     print("Skipping: {}".format(b))
                     continue
                 print("Compiling: {}".format(b))
@@ -144,30 +136,31 @@ class Machine:
                 continue
 
     def compile_libs(self):
-        for lib in self.libs:
-            path = self.get_script_path()
-            build_path = path + '/../../build-' + self.suffix +'/'
-            install_path = path + '/../../install-' + self.suffix +'/'
-            if not os.path.exists(build_path):
-                os.makedirs(build_path)
-            lib.compile_pre='pwd'
-            sequence =  [
-                lib.compile_pre,
-                'cd {}'.format(build_path),
-                'cmake .. {}'.format(lib.compile_flags),
-                'make',
-                'make install DESTDIR='+install_path]
-            command = ' && '.join(filter(lambda x : len(x) > 0, sequence))
-            print(command)
-            p = sp.Popen('/bin/bash',
-                         cwd = build_path,
-                         stdin = sp.PIPE,
-                         stdout = sp.PIPE,
-                         stderr = sp.PIPE)
-            (out, err) = p.communicate(input=command.encode())
-            if p.returncode:
-                print(out.decode('UTF-8'))
-                print(err.decode('UTF-8'))
-                raise Exception("Failed to prepare library.")
+        path = self.get_script_path()
+        build_path = path + '/../../build-' + self.suffix +'/'
+        install_path = path + '/../../install-' + self.suffix +'/'
+        if not os.path.exists(build_path):
+            os.makedirs(build_path)
+        self.lib.compile_pre='pwd'
+        sequence =  [
+            self.lib.compile_pre,
+            'cd {}'.format(build_path),
+            'cmake .. {}'.format(self.lib.compile_flags),
+            'make clean',
+            'make',
+            'make install DESTDIR='+install_path]
+        command = ' && '.join(filter(lambda x : len(x) > 0, sequence))
+        print(command)
+        p = sp.Popen('/bin/bash',
+                     cwd = build_path,
+                     env = self.env,
+                     stdin = sp.PIPE,
+                     stdout = sp.PIPE,
+                     stderr = sp.PIPE)
+        (out, err) = p.communicate(input=command.encode())
+        if p.returncode:
             print(out.decode('UTF-8'))
             print(err.decode('UTF-8'))
+            raise Exception("Failed to prepare library.")
+        print(out.decode('UTF-8'))
+        print(err.decode('UTF-8'))

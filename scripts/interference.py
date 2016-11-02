@@ -36,7 +36,7 @@ def parse_args():
     compile_parser = \
       commands.add_parser('prepare',
        help='Prepare libinterference for a specific MPI library')
-    compile_parser.add_argument('targets', nargs='*', default=['default'])
+    compile_parser.add_argument('target', default=['default'])
     compile_parser.set_defaults(comm='prepare')
 
     args = parser.parse_args()
@@ -57,6 +57,10 @@ def create_machine(args):
         return PlanetaOS(args)
     elif args.machine == 'taurus':
         return PlanetaOS(args)
+    elif args.machine == 'planeta-ampi':
+        return PlanetaOS_AMPI(args)
+    elif args.machine == 'taurus-ampi':
+        return Taurus_AMPI(args)
 
     raise Exception("Failed to identify the machine." +
                     " Probably you need to create a new configuration")

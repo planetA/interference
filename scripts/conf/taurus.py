@@ -37,24 +37,22 @@ class Taurus(manager.Machine):
 
         self.preload = 'LD_PRELOAD={}'
 
-        self.known_libs = {
-            'default' : manager.Lib('mvapich',
-                                    compile_pre='source ~/scr/pi/pi.env',
-                                    compile_flags='')
-        }
+        self.lib = manager.Lib('mvapich',
+                               compile_pre='source ~/scr/pi/pi.env',
+                               compile_flags='')
 
         self.env = os.environ.copy()
         self.env['OMP_NUM_THREADS'] = '1'
+        self.env['INTERFERENCE_LOCALID'] = 'MV2_COMM_WORLD_LOCAL_RANK'
 
         self.prefix = 'INTERFERENCE'
-        self.localid_var = 'MV2_COMM_WORLD_LOCAL_RANK'
 
-        self.schedulers = (("cfs",), ("pinned",))
-        self.affinities = (("2-3",), ("1,3",))
+        self.schedulers = ("cfs", "pinned")
+        self.affinities = ("2-3", "1,3")
 
-        self.nodes = ((1,),)
+        self.nodes = (1,)
 
-        self.runs = ((i,) for i in range(3))
+        self.runs = (i for i in range(3))
         self.benchmarks = self.group.benchmarks
 
         self.nodelist = self.get_nodelist()

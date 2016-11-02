@@ -1,18 +1,18 @@
 import manager
 
-class Npb(manager.Benchmark):
+class Miniapp(manager.Benchmark):
     """ Class representing an npb benchmark """
     def __init__(self, **kwargs):
-        super(Npb, self).__init__()
+        super().__init__()
 
         self.prog = kwargs['prog']
         self.np = kwargs['np']
         self.size = kwargs['size']
         self.wd = kwargs['wd']
 
-        self.compile_command = "make {} NPROCS={} CLASS={}".format(self.prog, self.np, self.size)
+        self.compile_command = "make"
 
-        self.name = "{}.{}.{}".format(self.prog, self.size, self.np)
+        self.name = kwargs['tmpl'].format_map(self.SafeDict(**kwargs))
 
     def __eq__(self, other):
         return ((self.prog == other.prog) and (self.np == self.np) and
@@ -22,4 +22,4 @@ class Npb(manager.Benchmark):
         return hash((self.prog, self.np, self.size, self.wd))
 
     def __str__(self):
-        return "{}.{}.{} {}".format(self.prog, self.size, self.np, self.fail)
+        return "{} {} -np {} {}".format(self.prog, self.size, self.np, self.fail)

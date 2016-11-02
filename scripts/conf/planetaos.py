@@ -11,23 +11,23 @@ class PlanetaOS(manager.Machine):
         base =  "/home/desertfox/research/projects/ffmk/interference-bench/"
 
         self.group = \
-            manager.BenchGroup(Npb, progs = ("bt-mz", "sp-mz"),
-                               sizes = ("S",),
+            manager.BenchGroup(Npb, prog = ("bt-mz", "sp-mz"),
+                               size = ("S",),
                                np = (2, 4),
                                wd = base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
-            manager.BenchGroup(Npb, progs = ("bt-mz", "sp-mz"),
-                               sizes = ("W",),
+            manager.BenchGroup(Npb, prog = ("bt-mz", "sp-mz"),
+                               size = ("W",),
                                np = (2, 4, 8),
                                wd = base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
             manager.BenchGroup(Npb,
-                               progs = ("bt", "sp"),
-                               sizes = ("W", "S"),
+                               prog = ("bt", "sp"),
+                               size = ("W", "S"),
                                np = (4, 9),
                                wd = base + "/NPB3.3.1/NPB3.3-MPI/") + \
             manager.BenchGroup(Npb,
-                               progs = ("cg", "ep", "ft",
-                                        "is", "lu", "mg"),
-                               sizes = ("W", "S"),
+                               prog = ("cg", "ep", "ft",
+                                       "is", "lu", "mg"),
+                               size = ("W", "S"),
                                np = (2, 4, 8),
                                wd = base + "/NPB3.3.1/NPB3.3-MPI/")
 
@@ -37,22 +37,19 @@ class PlanetaOS(manager.Machine):
 
         self.preload = '-x LD_PRELOAD={}'
 
-        self.known_libs = {
-            'default' : manager.Lib('openmpi')
-        }
-
+        self.lib = manager.Lib('openmpi')
 
         self.env = os.environ.copy()
+        self.env['INTERFERENCE_LOCALID'] = 'OMPI_COMM_WORLD_LOCAL_RANK'
 
         self.prefix = 'INTERFERENCE'
-        self.localid_var = 'OMPI_COMM_WORLD_LOCAL_RANK'
 
-        self.schedulers = (("cfs",), ("pinned",))
-        self.affinities = (("2-3",), ("1,3",))
+        self.schedulers = ("cfs", "pinned")
+        self.affinities = ("2-3", "1,3")
 
-        self.nodes = ((1,),)
+        self.nodes = (1,)
 
-        self.runs = ((i,) for i in range(3))
+        self.runs = (i for i in range(3))
         self.benchmarks = self.group.benchmarks
 
         self.nodelist = self.get_nodelist()

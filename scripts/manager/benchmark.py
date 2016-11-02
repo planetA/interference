@@ -2,6 +2,10 @@ import itertools
 import subprocess as sp
 
 class Benchmark:
+    class SafeDict(dict):
+        def __missing__(self, key):
+            return '{' + key + '}'
+
     def __init__(self):
         self.fail = False
 
@@ -24,10 +28,17 @@ class Benchmark:
 
 class BenchGroup:
     """ Class representing a group of NPB benchmarks """
-    def __init__(self, BenchmarkClass, progs, sizes, np, wd):
-        self.benchmarks = tuple((BenchmarkClass(prog, np, size, wd),)
-                            for (prog, np, size)
-                            in itertools.product(progs, np, sizes))
+    def __init__(self, BenchmarkClass, **kwargs):
+        wd = kwargs['wd']
+        if 'tmpl' not in kwargs:
+            tmpl = ''
+        else:
+            tmpl = kwargs['tmpl']
+        rest = {i : kwargs[i] for i in kwargs if i not in ('wd', 'tmpl')}
+        params = list(dict(zip(rest, p)) for p in itertools.product(*rest.values()))
+        params = [{**{'wd' : wd, 'tmpl' : tmpl}, **i} for i in params]
+        self.benchmarks = tuple(BenchmarkClass(**i) for i in params)
+        print([str(i) for i in self.benchmarks])
 
     def __add__(self, other):
         self.benchmarks = self.benchmarks + other.benchmarks
