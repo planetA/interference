@@ -19,6 +19,7 @@ std::string sched;
 std::vector<int> affinity;
 int localid;
 int working_cpu;
+bool mvapich_hack = false;
 
 std::chrono::time_point<std::chrono::system_clock> start, end;
 
@@ -92,13 +93,18 @@ void parse_env()
   affinity = parse_affinity(affinity_ptr);
 
   auto localid_name_ptr = std::getenv("INTERFERENCE_LOCALID");
-  if (!localid_name_ptr)
-    throw std::runtime_error("INTERFERENCE_LOCALID should be set");
-  auto localid_ptr = std::getenv(localid_name_ptr);
-  if (!localid_ptr)
-    throw std::runtime_error("INTERFERENCE_LOCALID points to nonexistent variable");
-  localid = std::stol(localid_ptr);
+  if (localid_name_ptr) {
+    auto localid_ptr = std::getenv(localid_name_ptr);
+    if (!localid_ptr)
+      throw std::runtime_error("INTERFERENCE_LOCALID points to nonexistent variable");
+    localid = std::stol(localid_ptr);
+  } else {
+    // Probably this concept makes no sense in here
+    localid = 0;
+  }
 
+  if (std::getenv("INTERFERENCE_HACK"))
+    mvapich_hack = true;
 }
 
 /**
@@ -202,7 +208,9 @@ void interference_end()
     }
   }
 
-  barrier();
-  std::flush(std::cout);
-  exit(0);
+  if (mvapich_hack) {
+    barrier();
+    std::flush(std::cout);
+    exit(0);
+  }
 }

@@ -16,8 +16,9 @@ add_subdirectory(scripts)
 # Options. Turn on with 'cmake -Dtest=ON'.
 option(test "Build all tests." OFF) # Makes boolean 'test' available.
 option(fortran "Add fortran bindings." OFF) # Makes boolean 'test' available.
+option(wrapper "Enable PMPI wrapper." ON)
 
-if (test)
+if (test AND wrapper)
   enable_testing()
   add_subdirectory(test)
 endif()
