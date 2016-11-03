@@ -68,15 +68,15 @@ class Taurus(manager.Machine):
 
         return p.stdout.decode('UTF-8').splitlines()
 
-    def format_command(self, bench, nodes):
+    def format_command(self, context):
         parameters = " ".join([self.mpiexec_hostfile.format(self.hostfile.path),
-                               self.mpiexec_np, str(bench.np),
+                               self.mpiexec_np, str(context.bench.np),
                                '-ssh',
                                '-export-all'])
         source = "source {}/scr/pi/pi.env".format(self.env['HOME'])
-        return "{} ; taskset 0xFFFFFFFF {} {} {} ./bin/{}".format(source,
-                                                                      self.mpiexec, parameters,
-                                                                      self.preload.format(self.get_lib()), bench.name)
+        command = "{} ; taskset 0xFFFFFFFF {} {} {} ./bin/{}"
+        return command.format(source, self.mpiexec, parameters,
+                              self.preload.format(self.get_lib()), context.bench.name)
 
     def correct_guess():
         if 'taurusi' in socket.gethostname():

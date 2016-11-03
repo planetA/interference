@@ -1,31 +1,23 @@
 import os
 import subprocess
 import itertools
-import tempfile
 import subprocess as sp
 
+import time
+
 from .cache import Cache
+from .context import Context
 
 class Machine:
-    class Hostfile:
-        def __init__(self, machine, nodes):
-            if not os.path.exists(machine.hostfile_dir):
-                os.makedirs(machine.hostfile_dir)
-
-            (fd,
-             self.path) = tempfile.mkstemp(prefix='hostfile.',
-                                           dir = machine.hostfile_dir, text=True)
-            self.hostfile = open(self.path, "w")
-            self.hostfile.write("\n".join(machine.nodelist[:nodes])+'\n')
-            self.hostfile.flush()
-
+    class Hostfile(Context):
         def __enter__(self):
-            return self.hostfile
+            self.hostfile = self.create_file(self.machine.hostfile_dir, 'hostfile')
+            self.hostfile.f.write("\n".join(self.machine.nodelist[:self.nodes])+'\n')
 
-        def __exit__(self, exc_type, exc_value, traceback):
-            self.hostfile.close()
-            if os.path.exists(self.path):
-                os.remove(self.path)
+            return super().__enter__()
+
+    def create_context(self, machine, cfg):
+        return self.Hostfile(self, cfg)
 
     def __init__(self, args):
         self.args = args
@@ -76,10 +68,6 @@ class Machine:
 
                 cache.add(b)
 
-    def create_hostfile(self, nodes):
-        self.hostfile = self.Hostfile(self, nodes)
-        return self.hostfile
-
     def run_benchmarks(self, runtimes_log):
         print('-'*62)
         for cfg in self.configurations():
@@ -88,8 +76,8 @@ class Machine:
             if bench.fail:
                 continue
 
-            with self.create_hostfile(nodes) as hostfile:
-                command = self.format_command(bench, nodes)
+            with self.create_context(self, cfg) as context:
+                command = self.format_command(context)
                 print("Run ", bench.name, nodes, {i : env[i] for i in filter(lambda k : 'INTERFERENCE' in k, env.keys())})
                 print(command)
                 p = sp.Popen(command, stdout = sp.PIPE, stderr = sp.STDOUT,
@@ -118,7 +106,7 @@ class Machine:
                                 filter(lambda x : ':' in x,
                                        l.split(',')))}
                     print(row)
-                    runtimes_log.writerow([bench.name,
+                    runtimes_log.writerow([bench.prog,
                                            nodes,
                                            bench.np,
                                            bench.size,

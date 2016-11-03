@@ -46,7 +46,7 @@ class PlanetaOS_AMPI(manager.Machine):
 
         self.prefix = 'INTERFERENCE'
 
-        self.schedulers = ("cfs")
+        self.schedulers = ("cfs",)
         self.affinities = ("2-3", "1,3")
 
         self.nodes = (1,)
@@ -65,8 +65,8 @@ class PlanetaOS_AMPI(manager.Machine):
     def get_nodelist(self):
         return list(map(lambda x: 'host ' + str(x), (socket.gethostname())))
 
-    def format_command(self, bench, nodes):
-        command = " ".join([bench.name.format(hostfile=self.hostfile.path)])
+    def format_command(self, context):
+        command = " ".join([context.bench.name.format(hostfile=context.hostfile.path)])
         print(command)
         return command
 

@@ -12,27 +12,44 @@ class Taurus_AMPI(manager.Machine):
 
         base =  self.env['HOME'] + "/interference-bench/"
 
-        tmpl = './bin/charmrun +p{np} ++mpiexec ++remote-shell srun ' \
-               './bin/{prog} ++nodelist {hostfile} +vp{vp} {size} ++verbose'
+        tmpl = './charmrun +p{np} ++mpiexec ++remote-shell {script} ' \
+               './{prog} ++nodelist {hostfile} +vp{size} {size_param} ++verbose'
         self.group = \
             manager.BenchGroup(Miniapp, prog = ("CoMD-ampi",),
-                               size = ("-i 2 -j 1 -k 1",),
-                               vp = (2,),
+                               size_param = ("-i 2 -j 1 -k 1",),
+                               size = (2,),
                                np = (1, 2),
-                               wd = base + "CoMD-1.1/",
+                               wd = base + "CoMD-1.1/bin/",
                                tmpl = tmpl) + \
             manager.BenchGroup(Miniapp, prog = ("CoMD-ampi",),
-                               size = ("-i 2 -j 2 -k 1",),
-                               vp = (4,),
-                               np = (1, 2, 4),
-                               wd = base + "CoMD-1.1/",
+                               size_param = ("-i 2 -j 2 -k 1",),
+                               size = (4,),
+                               np = (1, 2),
+                               wd = base + "CoMD-1.1/bin/",
                                tmpl = tmpl) + \
             manager.BenchGroup(Miniapp, prog = ("CoMD-ampi",),
-                               size = ("-i 2 -j 2 -k 2",),
-                               vp = (8,),
+                               size_param = ("-i 2 -j 2 -k 2",),
+                               size = (8,),
                                np = (2, 4),
-                               wd = base + "CoMD-1.1/",
+                               wd = base + "CoMD-1.1/bin/",
                                tmpl = tmpl)
+
+        self.group = \
+                    manager.BenchGroup(Miniapp, prog = ("lassen_mpi",),
+                               size_param = ("default 2 2 2 200 200 200",),
+                               size = (8,),
+                               np = (1, 2),
+                               wd = base + "Lassen-1.0/",
+                               tmpl = tmpl)
+
+        self.group = \
+            manager.BenchGroup(Miniapp, prog = ("lulesh2.0",),
+                       size_param = ("-i 300 -c 10 -b 3",),
+                       size = (8,),
+                       np = (2),
+                       wd = base + "Lulesh-2.0/",
+                       tmpl = tmpl)
+
 
         charm_path = self.env['HOME'] + '/ampi/charm/verbs-linux-x86_64-gfortran-gcc/'
         self.env['PATH'] = self.env['PATH'] + ":" + charm_path + "bin"
@@ -47,7 +64,7 @@ class Taurus_AMPI(manager.Machine):
 
         self.prefix = 'INTERFERENCE'
 
-        self.schedulers = ("cfs")
+        self.schedulers = ("cfs",)
         self.affinities = ("2-3", "1,3")
 
         self.nodes = (1,)
@@ -73,8 +90,9 @@ class Taurus_AMPI(manager.Machine):
         hostnames = p.stdout.decode('UTF-8').splitlines()
         return list(map(lambda x: 'host ' + str(x), hostnames))
 
-    def format_command(self, bench, nodes):
-        command = " ".join([bench.name.format(hostfile=self.hostfile.path)])
+    def format_command(self, context):
+        command = " ".join([context.bench.name.format(hostfile=context.hostfile.path,
+                                                      script=context.script.path)])
         print(command)
         return command
 
@@ -82,3 +100,19 @@ class Taurus_AMPI(manager.Machine):
         if 'taurusi' in socket.gethostname():
             return True
         return False
+
+    def create_context(self, machine, cfg):
+        return self.Context(self, cfg)
+
+    class Context(manager.Context):
+        def __enter__(self):
+            self.hostfile = self.create_file(self.machine.hostfile_dir, 'hostfile')
+            self.hostfile.f.write("\n".join(self.machine.nodelist[:self.nodes])+'\n')
+
+            self.script = self.create_script(self.machine.hostfile_dir, 'script')
+            self.script.f.write("\n".join(
+                ['#!/bin/bash -f',
+                 'shift',
+                 'exec srun -n $*'])+'\n')
+
+            return super().__enter__()

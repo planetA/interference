@@ -60,13 +60,13 @@ class PlanetaOS(manager.Machine):
     def get_nodelist(self):
         return [socket.gethostname()]
 
-    def format_command(self, bench, nodes):
+    def format_command(self, context):
         parameters = " ".join([self.mpiexec_hostfile.format(self.hostfile.path),
-                               self.mpiexec_np, str(bench.np),
+                               self.mpiexec_np, str(context.bench.np),
                                self.preload.format(self.get_lib()),
                                '-oversubscribe',
                                '--bind-to none'])
-        return "{} {} ./bin/{}".format(self.mpiexec, parameters, bench.name)
+        return "{} {} ./bin/{}".format(self.mpiexec, parameters, context.bench.name)
 
     def correct_guess():
         if socket.gethostname() == 'planeta-os':
