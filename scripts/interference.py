@@ -59,6 +59,8 @@ def create_machine(args):
         return PlanetaOS(args)
     elif args.machine == 'planeta-ampi':
         return PlanetaOS_AMPI(args)
+    elif args.machine == 'taurus-mini':
+        return Taurus_Mini(args)
     elif args.machine == 'taurus-ampi':
         return Taurus_AMPI(args)
 

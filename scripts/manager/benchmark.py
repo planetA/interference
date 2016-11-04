@@ -29,14 +29,14 @@ class Benchmark:
 class BenchGroup:
     """ Class representing a group of NPB benchmarks """
     def __init__(self, BenchmarkClass, **kwargs):
-        wd = kwargs['wd']
         if 'tmpl' not in kwargs:
-            tmpl = ''
-        else:
-            tmpl = kwargs['tmpl']
-        rest = {i : kwargs[i] for i in kwargs if i not in ('wd', 'tmpl')}
-        params = list(dict(zip(rest, p)) for p in itertools.product(*rest.values()))
-        params = [{**{'wd' : wd, 'tmpl' : tmpl}, **i} for i in params]
+            kwargs['tmpl'] = ''
+        is_container = lambda x : isinstance(kwargs[x], list) or isinstance(kwargs[x], tuple)
+        is_not_container = lambda x : not is_container(x)
+        rest = {k : kwargs[k] for k in filter(is_not_container, kwargs)}
+        lists = {k : kwargs[k] for k in filter(is_container, kwargs)}
+        params = list(dict(zip(lists, p)) for p in itertools.product(*lists.values()))
+        params = [{**rest, **i} for i in params]
         self.benchmarks = tuple(BenchmarkClass(**i) for i in params)
         print([str(i) for i in self.benchmarks])
 

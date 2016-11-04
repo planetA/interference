@@ -10,7 +10,10 @@ class Miniapp(manager.Benchmark):
         self.size = kwargs['size']
         self.wd = kwargs['wd']
 
-        self.compile_command = "make"
+        if 'compile_command' in kwargs:
+            self.compile_command = kwargs['compile_command']
+        else:
+            self.compile_command = "make"
 
         self.name = kwargs['tmpl'].format_map(self.SafeDict(**kwargs))
 
