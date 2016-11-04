@@ -13,7 +13,7 @@ class Taurus_AMPI(manager.Machine):
         base =  self.env['HOME'] + "/interference-bench/"
 
         tmpl = './charmrun +p{np} ++mpiexec ++remote-shell {script} ' \
-               './{prog} ++nodelist {hostfile} +vp{size} {size_param} ++verbose'
+               './{prog} +vp{size} {size_param} ++verbose'
         self.group = \
             manager.BenchGroup(Miniapp, prog = ("CoMD-ampi",),
                                size_param = ("-i 2 -j 1 -k 1",),
@@ -46,7 +46,7 @@ class Taurus_AMPI(manager.Machine):
             manager.BenchGroup(Miniapp, prog = ("lulesh2.0",),
                        size_param = ("-i 300 -c 10 -b 3",),
                        size = (8,),
-                       np = (2),
+                       np = (2,),
                        wd = base + "Lulesh-2.0/",
                        tmpl = tmpl)
 
@@ -87,12 +87,10 @@ class Taurus_AMPI(manager.Machine):
         if p.returncode:
             raise Exception("Failed to get hosts")
 
-        hostnames = p.stdout.decode('UTF-8').splitlines()
-        return list(map(lambda x: 'host ' + str(x), hostnames))
+        return list(p.stdout.decode('UTF-8').splitlines())
 
     def format_command(self, context):
-        command = " ".join([context.bench.name.format(hostfile=context.hostfile.path,
-                                                      script=context.script.path)])
+        command = " ".join([context.bench.name.format(script=context.script.path)])
         print(command)
         return command
 
@@ -106,13 +104,10 @@ class Taurus_AMPI(manager.Machine):
 
     class Context(manager.Context):
         def __enter__(self):
-            self.hostfile = self.create_file(self.machine.hostfile_dir, 'hostfile')
-            self.hostfile.f.write("\n".join(self.machine.nodelist[:self.nodes])+'\n')
-
             self.script = self.create_script(self.machine.hostfile_dir, 'script')
             self.script.f.write("\n".join(
                 ['#!/bin/bash -f',
                  'shift',
-                 'exec srun -n $*'])+'\n')
+                 'exec srun -N {nodes} -n $*'.format(nodes=self.nodes)])+'\n')
 
             return super().__enter__()
