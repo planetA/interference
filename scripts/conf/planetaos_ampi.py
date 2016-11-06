@@ -9,6 +9,7 @@ from .miniapp import Miniapp
 class PlanetaOS_AMPI(manager.Machine):
     def __init__(self, args):
         base =  "/home/desertfox/research/projects/ffmk/interference-bench/"
+        nodes = (1,)
 
         tmpl = './bin/charmrun +p{np} ./bin/{prog} ++nodelist {hostfile} +vp{vp} {size} ++local'
         self.group = \
@@ -16,18 +17,21 @@ class PlanetaOS_AMPI(manager.Machine):
                                size = ("-i 2 -j 1 -k 1",),
                                vp = (2,),
                                np = (1, 2),
+                               nodes = nodes,
                                wd = base + "CoMD-1.1/",
                                tmpl = tmpl) + \
             manager.BenchGroup(Miniapp, prog = ("CoMD-ampi",),
                                size = ("-i 2 -j 2 -k 1",),
                                vp = (4,),
                                np = (1, 2, 4),
+                               nodes = nodes,
                                wd = base + "CoMD-1.1/",
                                tmpl = tmpl) + \
             manager.BenchGroup(Miniapp, prog = ("CoMD-ampi",),
                                size = ("-i 2 -j 2 -k 2",),
                                vp = (8,),
                                np = (2, 4),
+                               nodes = nodes,
                                wd = base + "CoMD-1.1/",
                                tmpl = tmpl)
 
@@ -48,8 +52,6 @@ class PlanetaOS_AMPI(manager.Machine):
 
         self.schedulers = ("cfs",)
         self.affinities = ("2-3", "1,3")
-
-        self.nodes = (1,)
 
         self.runs = (i for i in range(3))
         self.benchmarks = self.group.benchmarks

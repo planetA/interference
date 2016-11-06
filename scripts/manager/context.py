@@ -27,7 +27,7 @@ class Context:
 
     def __init__(self, machine, cfg):
         self.machine = machine
-        (self.bench, self.nodes, self.env,
+        (self.bench, self.env,
          self.sched, self.affinity, self.run) = cfg
 
     def __enter__(self):

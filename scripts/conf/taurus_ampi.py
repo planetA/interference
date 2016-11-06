@@ -10,6 +10,8 @@ class Taurus_AMPI(manager.Machine):
     def __init__(self, args):
         self.env = os.environ.copy()
 
+        nodes = (1,)
+
         base =  self.env['HOME'] + "/interference-bench/"
 
         tmpl = './charmrun +p{np} ++mpiexec ++remote-shell {script} ' \
@@ -19,18 +21,21 @@ class Taurus_AMPI(manager.Machine):
                                size_param = ("-i 2 -j 1 -k 1",),
                                size = (2,),
                                np = (1, 2),
+                               nodes = nodes,
                                wd = base + "CoMD-1.1/bin/",
                                tmpl = tmpl) + \
             manager.BenchGroup(Miniapp, prog = ("CoMD-ampi",),
                                size_param = ("-i 2 -j 2 -k 1",),
                                size = (4,),
                                np = (1, 2),
+                               nodes = nodes,
                                wd = base + "CoMD-1.1/bin/",
                                tmpl = tmpl) + \
             manager.BenchGroup(Miniapp, prog = ("CoMD-ampi",),
                                size_param = ("-i 2 -j 2 -k 2",),
                                size = (8,),
                                np = (2, 4),
+                               nodes = nodes,
                                wd = base + "CoMD-1.1/bin/",
                                tmpl = tmpl)
 
@@ -39,6 +44,7 @@ class Taurus_AMPI(manager.Machine):
                                size_param = ("default 2 2 2 200 200 200",),
                                size = (8,),
                                np = (1, 2),
+                               nodes = nodes,
                                wd = base + "Lassen-1.0/",
                                tmpl = tmpl)
 
@@ -47,6 +53,7 @@ class Taurus_AMPI(manager.Machine):
                        size_param = ("-i 300 -c 10 -b 3",),
                        size = (8,),
                        np = (2,),
+                       nodes = nodes,
                        wd = base + "Lulesh-2.0/",
                        tmpl = tmpl)
 
@@ -66,8 +73,6 @@ class Taurus_AMPI(manager.Machine):
 
         self.schedulers = ("cfs",)
         self.affinities = ("2-3", "1,3")
-
-        self.nodes = (1,)
 
         self.runs = (i for i in range(3))
         self.benchmarks = self.group.benchmarks

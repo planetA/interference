@@ -6,30 +6,37 @@ import manager
 
 from .npb import Npb
 
+
 class Taurus(manager.Machine):
     def __init__(self, args):
-        base = os.environ['HOME']+'/interference-bench/'
+        base = os.environ['HOME'] + '/interference-bench/'
+
+        nodes = (1,)
 
         self.group = \
-            manager.BenchGroup(Npb, progs = ("bt-mz", "sp-mz"),
-                               sizes = ("S",),
-                               np = (2, 4),
-                               wd = base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
-            manager.BenchGroup(Npb, progs = ("bt-mz", "sp-mz"),
-                               sizes = ("W",),
-                               np = (2, 4, 8),
-                               wd = base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
+            manager.BenchGroup(Npb, progs=("bt-mz", "sp-mz"),
+                               sizes=("S",),
+                               np=(2, 4),
+                               nodes=nodes,
+                               wd=base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
+            manager.BenchGroup(Npb, progs=("bt-mz", "sp-mz"),
+                               sizes=("W",),
+                               np=(2, 4, 8),
+                               nodes=nodes,
+                               wd=base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
             manager.BenchGroup(Npb,
-                               progs = ("bt", "sp"),
-                               sizes = ("W", "S"),
-                               np = (4, 9),
-                               wd = base + "/NPB3.3.1/NPB3.3-MPI/") + \
+                               progs=("bt", "sp"),
+                               sizes=("W", "S"),
+                               np=(4, 9),
+                               nodes=nodes,
+                               wd=base + "/NPB3.3.1/NPB3.3-MPI/") + \
             manager.BenchGroup(Npb,
-                               progs = ("cg", "ep", "ft",
-                                        "is", "lu", "mg"),
-                               sizes = ("W", "S"),
-                               np = (2, 4, 8),
-                               wd = base + "/NPB3.3.1/NPB3.3-MPI/")
+                               progs=("cg", "ep", "ft",
+                                      "is", "lu", "mg"),
+                               sizes=("W", "S"),
+                               np=(2, 4, 8),
+                               nodes=nodes,
+                               wd=base + "/NPB3.3.1/NPB3.3-MPI/")
 
         self.mpiexec = 'mpirun_rsh'
         self.mpiexec_np = '-np'
@@ -51,8 +58,6 @@ class Taurus(manager.Machine):
         self.schedulers = ("cfs", "pinned")
         self.affinities = ("2-3", "1,3")
 
-        self.nodes = (1,)
-
         self.runs = (i for i in range(3))
         self.benchmarks = self.group.benchmarks
 
@@ -63,7 +68,7 @@ class Taurus(manager.Machine):
 
     def get_nodelist(self):
         p = sp.run('scontrol show hostnames'.split(),
-                       stdout = sp.PIPE)
+                   stdout=sp.PIPE)
         if p.returncode:
             raise Exception("Failed to get hosts")
 
@@ -77,7 +82,8 @@ class Taurus(manager.Machine):
         source = "source {}/scr/pi/pi.env".format(self.env['HOME'])
         command = "{} ; taskset 0xFFFFFFFF {} {} {} ./bin/{}"
         return command.format(source, self.mpiexec, parameters,
-                              self.preload.format(self.get_lib()), context.bench.name)
+                              self.preload.format(self.get_lib()),
+                              context.bench.name)
 
     def correct_guess():
         if 'taurusi' in socket.gethostname():

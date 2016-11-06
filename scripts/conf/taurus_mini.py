@@ -1,60 +1,105 @@
 import os
 import socket
 import subprocess as sp
+from numpy import prod
 
 import manager
 
 from .miniapp import Miniapp
 
+
 class Taurus_Mini(manager.Machine):
+    """Module for running miniapps with mvapich"""
+
     def __init__(self, args):
         self.env = os.environ.copy()
 
-        base =  self.env['HOME'] + "/interference-bench/miniapps/"
+        base = self.env['HOME'] + "/interference-bench/miniapps/"
+
+        nodes = (1, 2, 4, 8)
+        cpu_per_node = 24
+
+        def factors(n):
+            for i in range(2, n):
+                if n % i == 0:
+                    return [i] + factors(n // i)
+            return [n]
+
+        def partition(l, n):
+            """ Partition list @l into @n groups. First group contains
+             elements 0, n, 2*n, ... Second group contains elements
+             1, n, 2*n ...
+             """
+            return [[l[j] for j in range(i, len(l), n)] for i in range(n)]
+
+        def np_func(nodes):
+            return nodes * cpu_per_node
+
+        def comd_size_param(size, nodes):
+            np = np_func(nodes)
+            f = [1] * 3 + factors(np)
+            # Ensure that f has at least 3 groups
+            p = partition(f, 3)
+            return "-i {} -j {} -k {}".format(*map(prod, p))
 
         self.modules_load = 'source {}/mini.env'.format(base)
         compile_command = self.modules_load + '; cd ../src-mpi ; make'
         tmpl = './{prog} {size_param}'
         self.group = \
-            manager.BenchGroup(Miniapp, prog = ("CoMD-mpi",),
-                               size_param = ("-i 3 -j 2 -k 4",),
-                               size = (24,),
-                               np = (24,),
-                               wd = base + "CoMD/bin",
-                               compile_command = compile_command,
-                               tmpl = tmpl)#  + \
-            # manager.BenchGroup(Miniapp, prog = ("CoMD-ampi",),
-            #                    size_param = ("-i 2 -j 2 -k 1",),
-            #                    size = (4,),
-            #                    np = (1, 2),
-            #                    wd = base + "CoMD-1.1/bin/",
-            #                    tmpl = tmpl) + \
-            # manager.BenchGroup(Miniapp, prog = ("CoMD-ampi",),
-            #                    size_param = ("-i 2 -j 2 -k 2",),
-            #                    size = (8,),
-            #                    np = (2, 4),
-            #                    wd = base + "CoMD-1.1/bin/",
-            #                    tmpl = tmpl)
+            manager.BenchGroup(Miniapp, prog=("CoMD-mpi",),
+                               size=(1,),
+                               np=np_func,
+                               nodes=nodes,
+                               size_param=comd_size_param,
+                               wd=base + "CoMD/bin",
+                               compile_command=compile_command,
+                               tmpl=tmpl)  # + \
+        # manager.BenchGroup(Miniapp, prog = ("CoMD-ampi",),
+        #                    size_param = ("-i 2 -j 2 -k 1",),
+        #                    size = (4,),
+        #                    np = (1, 2),
+        #                    wd = base + "CoMD-1.1/bin/",
+        #                    tmpl = tmpl) + \
+        # manager.BenchGroup(Miniapp, prog = ("CoMD-ampi",),
+        #                    size_param = ("-i 2 -j 2 -k 2",),
+        #                    size = (8,),
+        #                    np = (2, 4),
+        #                    wd = base + "CoMD-1.1/bin/",
+        #                    tmpl = tmpl)
 
         compile_command = self.modules_load + '; make lassen_mpi'
+
+        def lassen_size_param(size, nodes, max_nodes):
+            np = np_func(nodes)
+            f = [1] * 3 + factors(np)
+            # Ensure that f has at least 3 groups
+            p = partition(f, 3)
+            domains = list(map(prod, p))
+            decomposition = '{} {} {}'.format(*domains)
+            global_zones = ' {}'.format(cpu_per_node * max_nodes) * 3
+            return "default {} {}".format(decomposition, global_zones)
+
         self.group += \
-                    manager.BenchGroup(Miniapp, prog = ("lassen_mpi",),
-                               size_param = ("default 2 2 2 200 200 200",),
-                               size = (8,),
-                               np = (8),
-                               compile_command = compile_command,
-                               wd = base + "lassen/",
-                               tmpl = tmpl)
+            manager.BenchGroup(Miniapp, prog=("lassen_mpi",),
+                               size_param=lassen_size_param,
+                               size=(1,),
+                               nodes=nodes,
+                               np=np_func,
+                               max_nodes=max(nodes),
+                               compile_command=compile_command,
+                               wd=base + "lassen/",
+                               tmpl=tmpl)
 
         compile_command = self.modules_load + '; make'
         self.group += \
-            manager.BenchGroup(Miniapp, prog = ("lulesh2.0",),
-                       size_param = ("-i 300 -c 10 -b 3",),
-                       size = (8,),
-                       np = (8,),
-                       wd = base + "lulesh2.0.3/",
-                       compile_command = compile_command,
-                       tmpl = tmpl)
+            manager.BenchGroup(Miniapp, prog=("lulesh2.0",),
+                               size_param=("-i 300 -c 10 -b 3",),
+                               size=(1,),
+                               nodes=nodes,
+                               np=(8,),
+                               wd=base + "lulesh2.0.3/",
+                               compile_command=compile_command,
+                               tmpl=tmpl)
 
         self.mpiexec = 'mpirun_rsh'
         self.mpiexec_np = '-np'
@@ -72,10 +117,8 @@ class Taurus_Mini(manager.Machine):
 
         self.prefix = 'INTERFERENCE'
 
-        self.schedulers = ("cfs",)
-        self.affinities = ("12-23",)
-
-        self.nodes = (1,)
+        self.schedulers = ("cfs", "pinned")
+        self.affinities = ("0-23",)
 
         self.runs = (i for i in range(3))
         self.benchmarks = self.group.benchmarks
@@ -87,20 +130,22 @@ class Taurus_Mini(manager.Machine):
 
     def get_nodelist(self):
         p = sp.run('scontrol show hostnames'.split(),
-                       stdout = sp.PIPE)
+                   stdout=sp.PIPE)
         if p.returncode:
             raise Exception("Failed to get hosts")
 
         return list(p.stdout.decode('UTF-8').splitlines())
 
     def format_command(self, context):
-        parameters = " ".join([self.mpiexec_hostfile.format(context.hostfile.path),
+        mpiline = self.mpiexec_hostfile.format(context.hostfile.path)
+        parameters = " ".join([mpiline,
                                self.mpiexec_np, str(context.bench.np),
                                '-ssh',
                                '-export-all'])
         command = "{} ; taskset 0xFFFFFFFF {} {} {} ./{}"
+        lib = self.preload.format(self.get_lib())
         return command.format(self.modules_load, self.mpiexec, parameters,
-                              self.preload.format(self.get_lib()), context.bench.name)
+                              lib, context.bench.name)
 
     def correct_guess():
         if 'taurusi' in socket.gethostname():

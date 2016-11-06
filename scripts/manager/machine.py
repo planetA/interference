@@ -12,7 +12,7 @@ class Machine:
     class Hostfile(Context):
         def __enter__(self):
             self.hostfile = self.create_file(self.machine.hostfile_dir, 'hostfile')
-            self.hostfile.f.write("\n".join(self.machine.nodelist[:self.nodes])+'\n')
+            self.hostfile.f.write("\n".join(self.machine.nodelist[:self.bench.nodes])+'\n')
 
             return super().__enter__()
 
@@ -40,15 +40,14 @@ class Machine:
         confs = tuple(
                       itertools.product(self.benchmarks,
                                         self.schedulers,
-                                        self.nodes,
                                         self.affinities,
                                         self.runs))
         res = list()
-        for (bench, sched, nodes, affinity, run) in confs:
+        for (bench, sched, affinity, run) in confs:
             env = self.env.copy()
             env['INTERFERENCE_AFFINITY'] = affinity
             env['INTERFERENCE_SCHED'] = sched
-            res.append((bench, nodes, env, sched, affinity, run))
+            res.append((bench, env, sched, affinity, run))
         return res
 
     def compile_benchmarks(self):
@@ -71,14 +70,14 @@ class Machine:
     def run_benchmarks(self, runtimes_log):
         print('-'*62)
         for cfg in self.configurations():
-            (bench, nodes, env, sched, affinity, run) = cfg
+            (bench, env, sched, affinity, run) = cfg
 
             if bench.fail:
                 continue
 
             with self.create_context(self, cfg) as context:
                 command = self.format_command(context)
-                print("Run ", bench.name, nodes, {i : env[i] for i in filter(lambda k : 'INTERFERENCE' in k, env.keys())})
+                print("Run ", bench.name, bench.nodes, {i : env[i] for i in filter(lambda k : 'INTERFERENCE' in k, env.keys())})
                 print(command)
                 p = sp.Popen(command, stdout = sp.PIPE, stderr = sp.STDOUT,
                              cwd = bench.wd, env = env, shell = True)
@@ -107,7 +106,7 @@ class Machine:
                                        l.split(',')))}
                     print(row)
                     runtimes_log.writerow([bench.prog,
-                                           nodes,
+                                           bench.nodes,
                                            bench.np,
                                            bench.size,
                                            run,

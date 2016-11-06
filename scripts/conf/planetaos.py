@@ -10,25 +10,30 @@ class PlanetaOS(manager.Machine):
     def __init__(self, args):
         base =  "/home/desertfox/research/projects/ffmk/interference-bench/"
 
+        nodes = (1,)
         self.group = \
             manager.BenchGroup(Npb, prog = ("bt-mz", "sp-mz"),
                                size = ("S",),
                                np = (2, 4),
+                               nodes = nodes,
                                wd = base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
             manager.BenchGroup(Npb, prog = ("bt-mz", "sp-mz"),
                                size = ("W",),
                                np = (2, 4, 8),
+                               nodes = nodes,
                                wd = base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
             manager.BenchGroup(Npb,
                                prog = ("bt", "sp"),
                                size = ("W", "S"),
                                np = (4, 9),
+                               nodes = nodes,
                                wd = base + "/NPB3.3.1/NPB3.3-MPI/") + \
             manager.BenchGroup(Npb,
                                prog = ("cg", "ep", "ft",
                                        "is", "lu", "mg"),
                                size = ("W", "S"),
                                np = (2, 4, 8),
+                               nodes = nodes,
                                wd = base + "/NPB3.3.1/NPB3.3-MPI/")
 
         self.mpiexec = 'mpirun'
@@ -46,8 +51,6 @@ class PlanetaOS(manager.Machine):
 
         self.schedulers = ("cfs", "pinned")
         self.affinities = ("2-3", "1,3")
-
-        self.nodes = (1,)
 
         self.runs = (i for i in range(3))
         self.benchmarks = self.group.benchmarks
