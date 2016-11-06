@@ -10,13 +10,14 @@ endif ()
 
 project(interference)
 
+option(wrapper "Enable PMPI wrapper." ON)
+
 add_subdirectory(lib)
 add_subdirectory(scripts)
 
 # Options. Turn on with 'cmake -Dtest=ON'.
 option(test "Build all tests." OFF) # Makes boolean 'test' available.
 option(fortran "Add fortran bindings." OFF) # Makes boolean 'test' available.
-option(wrapper "Enable PMPI wrapper." ON)
 
 if (test AND wrapper)
   enable_testing()
