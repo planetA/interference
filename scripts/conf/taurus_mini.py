@@ -40,7 +40,9 @@ class Taurus_Mini(manager.Machine):
             f = [1] * 3 + factors(np)
             # Ensure that f has at least 3 groups
             p = partition(f, 3)
-            return "-i {} -j {} -k {}".format(*map(prod, p))
+            problem_size = '-x 200 -y 200 -z 200'
+            decomposition = '-i {} -j {} -k {} '.format(*map(prod, p))
+            return decomposition + problem_size
 
         self.modules_load = 'source {}/mini.env'.format(base)
         compile_command = self.modules_load + '; cd ../src-mpi ; make'
