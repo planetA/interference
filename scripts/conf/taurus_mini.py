@@ -17,7 +17,10 @@ class Taurus_Mini(manager.Machine):
         base = self.env['HOME'] + "/interference-bench/miniapps/"
 
         nodes = (1, 2, 4, 8)
+        nodes = (8,)
         cpu_per_node = 24
+        schedulers = ("cfs", "pinned")
+        schedulers = ("pinned",)
 
         def factors(n):
             for i in range(2, n):
@@ -41,6 +44,7 @@ class Taurus_Mini(manager.Machine):
             # Ensure that f has at least 3 groups
             p = partition(f, 3)
             problem_size = '-x 200 -y 200 -z 200'
+            problem_size = '-x 20 -y 20 -z 20'
             decomposition = '-i {} -j {} -k {} '.format(*map(prod, p))
             return decomposition + problem_size
 
@@ -51,6 +55,7 @@ class Taurus_Mini(manager.Machine):
             manager.BenchGroup(Miniapp, prog=("CoMD-mpi",),
                                size=(1,),
                                np=np_func,
+                               schedulers=schedulers,
                                nodes=nodes,
                                size_param=comd_size_param,
                                wd=base + "CoMD/bin",
@@ -66,19 +71,23 @@ class Taurus_Mini(manager.Machine):
             p = partition(f, 3)
             domains = list(map(prod, p))
             decomposition = '{} {} {}'.format(*domains)
-            global_zones = ' {}'.format(cpu_per_node * max_nodes) * 3
+            global_zones = ' {}'.format(cpu_per_node * max_nodes * size) * 3
             return "default {} {}".format(decomposition, global_zones)
 
-        self.group += \
+        self.group = \
             manager.BenchGroup(Miniapp, prog=("lassen_mpi",),
                                size_param=lassen_size_param,
-                               size=(1,),
+                               size=(2,),
                                nodes=nodes,
                                np=np_func,
+                               schedulers=schedulers,
                                max_nodes=max(nodes),
                                compile_command=compile_command,
                                wd=base + "lassen/",
                                tmpl=tmpl)
+
+        def lulesh_np_func(nodes):
+            return {1: 8, 2: 27, 4: 64, 8: 125, 16: 343}[nodes]
 
         compile_command = self.modules_load + '; make'
         self.group += \
@@ -86,7 +95,8 @@ class Taurus_Mini(manager.Machine):
                                size_param=("-i 300 -c 10 -b 3",),
                                size=(1,),
                                nodes=nodes,
-                               np=(8,),
+                               schedulers=schedulers,
+                               np=lulesh_np_func,
                                wd=base + "lulesh2.0.3/",
                                compile_command=compile_command,
                                tmpl=tmpl)
@@ -107,7 +117,6 @@ class Taurus_Mini(manager.Machine):
 
         self.prefix = 'INTERFERENCE'
 
-        self.schedulers = ("cfs", "pinned")
         self.affinities = ("0-23",)
 
         self.runs = (i for i in range(3))

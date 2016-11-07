@@ -10,6 +10,7 @@ class PlanetaOS_AMPI(manager.Machine):
     def __init__(self, args):
         base = "/home/desertfox/research/projects/ffmk/interference-bench/"
         nodes = (1,)
+        schedulers = ("cfs",)
 
         tmpl = './bin/charmrun +p{np} ./bin/{prog}' \
             ' ++nodelist {hostfile} +vp{vp} {size} ++local'
@@ -18,6 +19,7 @@ class PlanetaOS_AMPI(manager.Machine):
                                size=("-i 2 -j 1 -k 1",),
                                vp=(2,),
                                np=(1, 2),
+                               schedulers=schedulers,
                                nodes=nodes,
                                wd=base + "CoMD-1.1/",
                                tmpl=tmpl) + \
@@ -25,6 +27,7 @@ class PlanetaOS_AMPI(manager.Machine):
                                size=("-i 2 -j 2 -k 1",),
                                vp=(4,),
                                np=(1, 2, 4),
+                               schedulers=schedulers,
                                nodes=nodes,
                                wd=base + "CoMD-1.1/",
                                tmpl=tmpl) + \
@@ -32,6 +35,7 @@ class PlanetaOS_AMPI(manager.Machine):
                                size=("-i 2 -j 2 -k 2",),
                                vp=(8,),
                                np=(2, 4),
+                               schedulers=schedulers,
                                nodes=nodes,
                                wd=base + "CoMD-1.1/",
                                tmpl=tmpl)
@@ -52,7 +56,6 @@ class PlanetaOS_AMPI(manager.Machine):
 
         self.prefix = 'INTERFERENCE'
 
-        self.schedulers = ("cfs",)
         self.affinities = ("2-3", "1,3")
 
         self.runs = (i for i in range(3))

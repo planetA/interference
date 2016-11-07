@@ -12,22 +12,26 @@ class Taurus(manager.Machine):
         base = os.environ['HOME'] + '/interference-bench/'
 
         nodes = (1,)
+        schedulers = ("cfs", "pinned")
 
         self.group = \
             manager.BenchGroup(Npb, progs=("bt-mz", "sp-mz"),
                                sizes=("S",),
                                np=(2, 4),
+                               schedulers=schedulers,
                                nodes=nodes,
                                wd=base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
             manager.BenchGroup(Npb, progs=("bt-mz", "sp-mz"),
                                sizes=("W",),
                                np=(2, 4, 8),
+                               schedulers=schedulers,
                                nodes=nodes,
                                wd=base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
             manager.BenchGroup(Npb,
                                progs=("bt", "sp"),
                                sizes=("W", "S"),
                                np=(4, 9),
+                               schedulers=schedulers,
                                nodes=nodes,
                                wd=base + "/NPB3.3.1/NPB3.3-MPI/") + \
             manager.BenchGroup(Npb,
@@ -35,6 +39,7 @@ class Taurus(manager.Machine):
                                       "is", "lu", "mg"),
                                sizes=("W", "S"),
                                np=(2, 4, 8),
+                               schedulers=schedulers,
                                nodes=nodes,
                                wd=base + "/NPB3.3.1/NPB3.3-MPI/")
 
@@ -55,7 +60,6 @@ class Taurus(manager.Machine):
 
         self.prefix = 'INTERFERENCE'
 
-        self.schedulers = ("cfs", "pinned")
         self.affinities = ("2-3", "1,3")
 
         self.runs = (i for i in range(3))

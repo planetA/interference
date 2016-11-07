@@ -27,8 +27,7 @@ class Context:
 
     def __init__(self, machine, cfg):
         self.machine = machine
-        (self.bench, self.env,
-         self.sched, self.affinity, self.run) = cfg
+        (self.run, self.bench, self.env, self.affinity) = cfg
 
     def __enter__(self):
         if hasattr(self, 'files'):

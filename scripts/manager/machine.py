@@ -38,16 +38,14 @@ class Machine:
 
     def configurations(self):
         confs = tuple(
-                      itertools.product(self.benchmarks,
-                                        self.schedulers,
-                                        self.affinities,
-                                        self.runs))
+            itertools.product(self.runs, self.benchmarks, self.affinities))
         res = list()
-        for (bench, sched, affinity, run) in confs:
+        for (run, bench, affinity) in confs:
+            print(run, bench, affinity)
             env = self.env.copy()
             env['INTERFERENCE_AFFINITY'] = affinity
-            env['INTERFERENCE_SCHED'] = sched
-            res.append((bench, env, sched, affinity, run))
+            env['INTERFERENCE_SCHED'] = bench.schedulers
+            res.append((run, bench, env, affinity))
         return res
 
     def compile_benchmarks(self):
@@ -68,19 +66,20 @@ class Machine:
                 cache.add(b)
 
     def run_benchmarks(self, runtimes_log):
-        print('-'*62)
+        print('-' * 62)
         for cfg in self.configurations():
-            (bench, env, sched, affinity, run) = cfg
+            (run, bench, env, affinity) = cfg
 
             if bench.fail:
                 continue
 
             with self.create_context(self, cfg) as context:
                 command = self.format_command(context)
-                print("Run ", bench.name, bench.nodes, {i : env[i] for i in filter(lambda k : 'INTERFERENCE' in k, env.keys())})
+                print("Run ", bench.name, bench.nodes, {
+                      i: env[i] for i in filter(lambda k: 'INTERFERENCE' in k, env.keys())})
                 print(command)
-                p = sp.Popen(command, stdout = sp.PIPE, stderr = sp.STDOUT,
-                             cwd = bench.wd, env = env, shell = True)
+                p = sp.Popen(command, stdout=sp.PIPE, stderr=sp.STDOUT,
+                             cwd=bench.wd, env=env, shell=True)
                 out = p.stdout.read().decode('UTF-8')
                 err = p.stdout.read().decode('UTF-8')
                 p.communicate()
@@ -92,25 +91,26 @@ class Machine:
                     print(p.returncode)
                     continue
 
-                results = list(filter(lambda x : self.prefix in x, out.splitlines()))
+                results = list(
+                    filter(lambda x: self.prefix in x, out.splitlines()))
                 if len(results) == 0:
                     print("Failed to get profiling data")
                     print("".join(out))
                     print("".join(err))
                     continue
                 for l in results:
-                    row = {k.strip() : v.strip()
-                           for (k,v) in
-                            map(lambda x : x.split(':'),
-                                filter(lambda x : ':' in x,
-                                       l.split(',')))}
+                    row = {k.strip(): v.strip()
+                           for (k, v) in
+                           map(lambda x: x.split(':'),
+                               filter(lambda x: ':' in x,
+                                      l.split(',')))}
                     print(row)
                     runtimes_log.writerow([bench.prog,
                                            bench.nodes,
                                            bench.np,
                                            bench.size,
                                            run,
-                                           sched,
+                                           bench.schedulers,
                                            affinity,
                                            row['CPU'],
                                            row['RANK'],
