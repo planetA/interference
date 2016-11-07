@@ -54,18 +54,6 @@ class Taurus_Mini(manager.Machine):
                                wd=base + "CoMD/bin",
                                compile_command=compile_command,
                                tmpl=tmpl)  # + \
-        # manager.BenchGroup(Miniapp, prog = ("CoMD-ampi",),
-        #                    size_param = ("-i 2 -j 2 -k 1",),
-        #                    size = (4,),
-        #                    np = (1, 2),
-        #                    wd = base + "CoMD-1.1/bin/",
-        #                    tmpl = tmpl) + \
-        # manager.BenchGroup(Miniapp, prog = ("CoMD-ampi",),
-        #                    size_param = ("-i 2 -j 2 -k 2",),
-        #                    size = (8,),
-        #                    np = (2, 4),
-        #                    wd = base + "CoMD-1.1/bin/",
-        #                    tmpl = tmpl)
 
         compile_command = self.modules_load + '; make lassen_mpi'
 
