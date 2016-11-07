@@ -179,10 +179,16 @@ void interference_end()
 
   int ranks = get_ranks();
   std::vector<long> utimes(ranks);
-  gather_times(std::chrono::duration_cast<std::chrono::milliseconds>(utime).count(), utimes.data());
+  gather_longs(std::chrono::duration_cast<std::chrono::milliseconds>(utime).count(), utimes.data());
 
   std::vector<long> wtimes(ranks);
-  gather_times(std::chrono::duration_cast<std::chrono::milliseconds>(wtime).count(), wtimes.data());
+  gather_longs(std::chrono::duration_cast<std::chrono::milliseconds>(wtime).count(), wtimes.data());
+
+  std::vector<long> localids(ranks);
+  gather_longs(localid, localids.data());
+
+  std::vector<long> cpus(ranks);
+  gather_longs(working_cpu, cpus.data());
 
   // Assume no overflow happens
   const unsigned name_len = 20;
@@ -200,8 +206,8 @@ void interference_end()
       std::cout << PREFIX
                 << " ,RANK: " << i
                 << " ,ITER: " << 1
-                << " ,CPU: " << working_cpu
-                << " ,LOCALID: " << localid
+                << " ,CPU: " << cpus[i]
+                << " ,LOCALID: " << localids[i]
                 << " ,NODE: " << &names[i*name_len]
                 << " ,WTIME: " << wtimes[i]
                 << " ,UTIME: " << utimes[i] << std::endl;

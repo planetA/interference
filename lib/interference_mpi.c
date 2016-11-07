@@ -16,9 +16,9 @@ int get_my_rank()
   return my_rank;
 }
 
-void gather_times(long my_time, long* times)
+void gather_longs(long my_long, long* longs)
 {
-  MPI_Gather(&my_time, 1, MPI_LONG, times, 1, MPI_LONG, 0, MPI_COMM_WORLD);
+  MPI_Gather(&my_long, 1, MPI_LONG, longs, 1, MPI_LONG, 0, MPI_COMM_WORLD);
 }
 
 void gather_names(const char *my_name, char *names, unsigned name_len)
