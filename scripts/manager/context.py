@@ -2,20 +2,22 @@ import os
 import tempfile
 from stat import *
 
+
 class Context:
     class File:
         def __init__(self, context, field, directory, prefix):
             if not hasattr(context, field):
-                setattr(context,field, [])
+                setattr(context, field, [])
             if not os.path.exists(directory):
                 os.makedirs(directory)
 
             (self.fd, self.path) \
-                = tempfile.mkstemp(prefix=prefix+'.', dir = directory, text=True)
+                = tempfile.mkstemp(prefix=prefix + '.',
+                                   dir=directory, text=True)
             self.f = open(self.path, "w")
             self.directory = directory
 
-            getattr(context,field).append(self)
+            getattr(context, field).append(self)
 
     def create_file(self, directory, prefix):
         return self.File(self, 'files', directory, prefix)

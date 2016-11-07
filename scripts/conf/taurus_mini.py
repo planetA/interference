@@ -17,7 +17,6 @@ class Taurus_Mini(manager.Machine):
         base = self.env['HOME'] + "/interference-bench/miniapps/"
 
         nodes = (1, 2, 4, 8)
-        nodes = (8,)
         cpu_per_node = 24
         schedulers = ("cfs", "pinned")
         schedulers = ("pinned",)
@@ -44,7 +43,6 @@ class Taurus_Mini(manager.Machine):
             # Ensure that f has at least 3 groups
             p = partition(f, 3)
             problem_size = '-x 200 -y 200 -z 200'
-            problem_size = '-x 20 -y 20 -z 20'
             decomposition = '-i {} -j {} -k {} '.format(*map(prod, p))
             return decomposition + problem_size
 

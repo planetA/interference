@@ -88,20 +88,22 @@ class Taurus_AMPI(manager.Machine):
 
         super().__init__(args)
 
-        old_ld = self.env['LD_LIBRARY_PATH'] + ':' if 'LD_LIBRARY_PATH' in self.env else ''
+        old_ld = self.env['LD_LIBRARY_PATH'] + \
+            ':' if 'LD_LIBRARY_PATH' in self.env else ''
         self.env['LD_LIBRARY_PATH'] = old_ld + self.get_lib_path()
         print(self.env['LD_LIBRARY_PATH'])
 
     def get_nodelist(self):
         p = sp.run('scontrol show hostnames'.split(),
-                       stdout = sp.PIPE)
+                   stdout=sp.PIPE)
         if p.returncode:
             raise Exception("Failed to get hosts")
 
         return list(p.stdout.decode('UTF-8').splitlines())
 
     def format_command(self, context):
-        command = " ".join([context.bench.name.format(script=context.script.path)])
+        command = " ".join(
+            [context.bench.name.format(script=context.script.path)])
         print(command)
         return command
 
@@ -115,10 +117,11 @@ class Taurus_AMPI(manager.Machine):
 
     class Context(manager.Context):
         def __enter__(self):
-            self.script = self.create_script(self.machine.hostfile_dir, 'script')
+            self.script = self.create_script(
+                self.machine.hostfile_dir, 'script')
             self.script.f.write("\n".join(
                 ['#!/bin/bash -f',
                  'shift',
-                 'exec srun -N {nodes} -n $*'.format(nodes=self.nodes)])+'\n')
+                 'exec srun -N {nodes} -n $*'.format(nodes=self.nodes)]) + '\n')
 
             return super().__enter__()

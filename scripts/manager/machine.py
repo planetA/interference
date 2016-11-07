@@ -1,30 +1,30 @@
 import os
-import subprocess
 import itertools
 import subprocess as sp
-
-import time
 
 from .cache import Cache
 from .context import Context
 
+
 class Machine:
     class Hostfile(Context):
         def __enter__(self):
-            self.hostfile = self.create_file(self.machine.hostfile_dir, 'hostfile')
-            self.hostfile.f.write("\n".join(self.machine.nodelist[:self.bench.nodes])+'\n')
+            self.hostfile = self.create_file(
+                self.machine.hostfile_dir, 'hostfile')
+            self.hostfile.f.write(
+                "\n".join(self.machine.nodelist[:self.bench.nodes]) + '\n')
 
             return super().__enter__()
 
     def create_context(self, machine, cfg):
-        return self.Hostfile(self, cfg)
+        return self.Hostfile(machine, cfg)
 
     def __init__(self, args):
         self.args = args
 
         self.env['INTERFERENCE_PREFIX'] = self.prefix
 
-        self.suffix = "{}-{}".format(type(self).__name__,self.lib.name)
+        self.suffix = "{}-{}".format(type(self).__name__, self.lib.name)
 
     def get_script_path(self):
         return os.path.dirname(os.path.realpath(__file__))
@@ -119,31 +119,31 @@ class Machine:
                                            row['UTIME'],
                                            row['WTIME']])
 
-                print('='*40)
+                print('=' * 40)
                 continue
 
     def compile_libs(self):
         path = self.get_script_path()
-        build_path = path + '/../../build-' + self.suffix +'/'
-        install_path = path + '/../../install-' + self.suffix +'/'
+        build_path = path + '/../../build-' + self.suffix + '/'
+        install_path = path + '/../../install-' + self.suffix + '/'
         if not os.path.exists(build_path):
             os.makedirs(build_path)
-        self.lib.compile_pre='pwd'
-        sequence =  [
+        self.lib.compile_pre = 'pwd'
+        sequence = [
             self.lib.compile_pre,
             'cd {}'.format(build_path),
             'cmake .. {}'.format(self.lib.compile_flags),
             'make clean',
             'make',
-            'make install DESTDIR='+install_path]
-        command = ' && '.join(filter(lambda x : len(x) > 0, sequence))
+            'make install DESTDIR=' + install_path]
+        command = ' && '.join(filter(lambda x: len(x) > 0, sequence))
         print(command)
         p = sp.Popen('/bin/bash',
-                     cwd = build_path,
-                     env = self.env,
-                     stdin = sp.PIPE,
-                     stdout = sp.PIPE,
-                     stderr = sp.PIPE)
+                     cwd=build_path,
+                     env=self.env,
+                     stdin=sp.PIPE,
+                     stdout=sp.PIPE,
+                     stderr=sp.PIPE)
         (out, err) = p.communicate(input=command.encode())
         if p.returncode:
             print(out.decode('UTF-8'))

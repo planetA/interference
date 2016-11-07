@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 
-import itertools
-import os
 import csv
 
 from argparse import ArgumentParser
 
-import manager
 from conf import *
+
 
 def parse_args():
     parser = ArgumentParser()
@@ -19,9 +17,10 @@ def parse_args():
                         default='default')
     parser.set_defaults(comm=None)
 
-    commands = parser.add_subparsers(help = 'Choose mode of operation')
+    commands = parser.add_subparsers(help='Choose mode of operation')
 
-    run_parser = commands.add_parser('run', help='Compile and run all benchmarks')
+    run_parser = commands.add_parser(
+        'run', help='Compile and run all benchmarks')
     run_parser.add_argument('-o',
                             help='Where to dump all runtimes.',
                             type=str,
@@ -34,8 +33,8 @@ def parse_args():
     run_parser.set_defaults(comm='run')
 
     compile_parser = \
-      commands.add_parser('prepare',
-       help='Prepare libinterference for a specific MPI library')
+        commands.add_parser('prepare',
+                            help='Prepare libinterference for a specific MPI library')
     compile_parser.add_argument('target', default=['default'])
     compile_parser.set_defaults(comm='prepare')
 
@@ -45,6 +44,7 @@ def parse_args():
         raise Exception('No command has been chosen')
 
     return args
+
 
 def create_machine(args):
     print(args.machine)
@@ -67,6 +67,7 @@ def create_machine(args):
     raise Exception("Failed to identify the machine." +
                     " Probably you need to create a new configuration")
 
+
 def main():
     args = parse_args()
 
@@ -87,7 +88,6 @@ def main():
                                'utime', 'wtime'])
 
             machine.run_benchmarks(runtimes)
-
 
 
 if __name__ == '__main__':
