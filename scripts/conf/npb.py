@@ -1,16 +1,11 @@
 import manager
 
+
 class Npb(manager.Benchmark):
     """ Class representing an npb benchmark """
+
     def __init__(self, **kwargs):
-        super(Npb, self).__init__()
-
-        self.prog = kwargs['prog']
-        self.np = kwargs['np']
-        self.size = kwargs['size']
-        self.wd = kwargs['wd']
-
-        self.compile_command = "make {} NPROCS={} CLASS={}".format(self.prog, self.np, self.size)
+        super().__init__(**kwargs)
 
         self.name = "{}.{}.{}".format(self.prog, self.size, self.np)
 

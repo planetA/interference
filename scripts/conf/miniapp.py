@@ -6,20 +6,7 @@ class Miniapp(manager.Benchmark):
     """ Class representing an npb benchmark """
 
     def __init__(self, **kwargs):
-        super().__init__()
-
-        for k, v in kwargs.items():
-            if callable(v):
-                print(k, v)
-                v_arguments = v.__code__.co_varnames[:v.__code__.co_argcount]
-                args = {arg: kwargs[arg] for arg in v_arguments}
-                if len([a for a in args.values() if callable(a)]):
-                    raise Exception("Parameter resolution depends " +
-                                    "on potenitally unresolved parameters")
-                setattr(self, k, v(**args))
-                print(getattr(self, k))
-            else:
-                setattr(self, k, v)
+        super().__init__(**kwargs)
 
         if 'compile_command' not in kwargs:
             self.compile_command = "make"

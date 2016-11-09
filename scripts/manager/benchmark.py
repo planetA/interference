@@ -7,8 +7,21 @@ class Benchmark:
         def __missing__(self, key):
             return '{' + key + '}'
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.fail = False
+
+        for k, v in kwargs.items():
+            if callable(v):
+                print(k, v)
+                v_arguments = v.__code__.co_varnames[:v.__code__.co_argcount]
+                args = {arg: kwargs[arg] for arg in v_arguments}
+                if len([a for a in args.values() if callable(a)]):
+                    raise Exception("Parameter resolution depends " +
+                                    "on potenitally unresolved parameters")
+                setattr(self, k, v(**args))
+                print(getattr(self, k))
+            else:
+                setattr(self, k, v)
 
     def compile(self, env):
         p = sp.Popen(self.compile_command,
