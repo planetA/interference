@@ -128,7 +128,6 @@ class Machine:
         install_path = path + '/../../install-' + self.suffix + '/'
         if not os.path.exists(build_path):
             os.makedirs(build_path)
-        self.lib.compile_pre = 'pwd'
         sequence = [
             self.lib.compile_pre,
             'cd {}'.format(build_path),
