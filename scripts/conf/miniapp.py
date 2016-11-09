@@ -48,6 +48,6 @@ class Miniapp(manager.Benchmark):
          elements 0, n, 2*n, ... Second group contains elements
          1, n, 2*n ...
          """
-        f = [1] * 3 + Miniapp.factors(n)
+        f = [1] * 3 + Miniapp.factors(l)
         p = [[f[j] for j in range(i, len(f), n)] for i in range(n)]
         return list(map(prod, p))

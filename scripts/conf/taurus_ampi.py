@@ -19,18 +19,16 @@ class Taurus_AMPI(manager.Machine):
         def vp_func(nodes, oversub):
             return np_func(nodes) * oversub
 
-        def comd_size_param(nodes):
-            np = np_func(nodes)
+        def comd_size_param(nodes, oversub):
+            np = vp_func(nodes, oversub)
             # Ensure that f has at least 3 groups
             domains = Miniapp.partition(np, 3)
             problem_size = '-x 200 -y 200 -z 200'
-            problem_size = '-x 20 -y 20 -z 20'
             decomposition = '-i {} -j {} -k {} '.format(*domains)
             return decomposition + problem_size
 
-        nodes = (1, 2, 4, 8)
-        nodes = (8,)
-        schedulers = ("cfs", )
+        nodes = (1, 2, 4, 8, 16)
+        schedulers = ("none", )
         self.affinities = ("0-23",)
 
         base = self.env['HOME'] + "/interference-bench/"
@@ -50,20 +48,20 @@ class Taurus_AMPI(manager.Machine):
                                wd=base + "CoMD-1.1/bin/",
                                tmpl=tmpl)
 
-        def lassen_size_param(size, nodes, max_nodes):
-            np = np_func(nodes)
+        def lassen_size_param(size, nodes, max_nodes, oversub):
+            np = vp_func(nodes, oversub)
             # Ensure that f has at least 3 groups
             domains = Miniapp.partition(np, 3)
             decomposition = '{} {} {}'.format(*domains)
             global_zones = ' {}'.format(cpu_per_node * max_nodes * size) * 3
             return "default {} {}".format(decomposition, global_zones)
 
-        self.group = \
+        self.group += \
             manager.BenchGroup(Miniapp, prog=("lassen_mpi",),
                                oversub=(1, 2, 4),
                                size_param=lassen_size_param,
                                vp=vp_func,
-                               size=(2,),
+                               size=(1,),
                                nodes=nodes,
                                np=np_func,
                                schedulers=schedulers,
@@ -78,7 +76,7 @@ class Taurus_AMPI(manager.Machine):
         def lulesh_vp_func(nodes, oversub):
             return lulesh_np_func(nodes * oversub)
 
-        self.group = \
+        self.group += \
             manager.BenchGroup(Miniapp, prog=("lulesh2.0",),
                                oversub=(1, 2, 4),
                                size=(1,),
