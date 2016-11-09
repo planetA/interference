@@ -82,7 +82,7 @@ def main():
         with open(args.out, 'w') as runtimes_log:
             runtimes = csv.writer(runtimes_log)
             runtimes.writerow(['prog', 'nodes', 'np',
-                               'size', 'run',
+                               'size', 'oversub', 'run',
                                'sched', 'affinity', 'cpu',
                                'rank', 'node', 'iter',
                                'utime', 'wtime'])

@@ -109,6 +109,7 @@ class Machine:
                                            bench.nodes,
                                            bench.np,
                                            bench.size,
+                                           bench.oversub,
                                            run,
                                            bench.schedulers,
                                            affinity,
