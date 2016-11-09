@@ -87,7 +87,7 @@ def main():
                                'rank', 'node', 'iter',
                                'utime', 'wtime'])
 
-            machine.run_benchmarks(runtimes)
+            machine.run_benchmarks(runtimes, runtimes_log)
 
 
 if __name__ == '__main__':

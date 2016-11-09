@@ -65,7 +65,7 @@ class Machine:
 
                 cache.add(b)
 
-    def run_benchmarks(self, runtimes_log):
+    def run_benchmarks(self, runtimes_log, runtimes_file):
         print('-' * 62)
         for cfg in self.configurations():
             (run, bench, env, affinity) = cfg
@@ -118,9 +118,8 @@ class Machine:
                                            row['ITER'],
                                            row['UTIME'],
                                            row['WTIME']])
-
+                runtimes_file.flush()
                 print('=' * 40)
-                continue
 
     def compile_libs(self):
         path = self.get_script_path()
