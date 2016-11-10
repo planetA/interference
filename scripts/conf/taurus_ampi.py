@@ -36,6 +36,9 @@ class Taurus_AMPI(manager.Machine):
         tmpl = './charmrun +p{np} ++mpiexec ++remote-shell {script} ' \
                './{prog} +vp{vp} {size_param} ++verbose'
 
+        def compile_command(wd):
+            return 'cd {}/../ ; make'.format(wd)
+
         self.group = \
             manager.BenchGroup(Miniapp, prog=("CoMD-ampi",),
                                oversub=(1, 2, 4),
@@ -44,6 +47,7 @@ class Taurus_AMPI(manager.Machine):
                                np=np_func,
                                schedulers=schedulers,
                                nodes=nodes,
+                               compile_command=compile_command,
                                size_param=comd_size_param,
                                wd=base + "CoMD-1.1/bin/",
                                tmpl=tmpl)
