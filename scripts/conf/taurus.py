@@ -1,5 +1,6 @@
 import os
 import socket
+import math
 import subprocess as sp
 
 import manager
@@ -11,37 +12,76 @@ class Taurus(manager.Machine):
     def __init__(self, args):
         base = os.environ['HOME'] + '/interference-bench/'
 
-        nodes = (1,)
+        cpu_per_node = 16
+        nodes = (2, 4, 8)
         schedulers = ("cfs", "pinned")
+        self.affinities = ("4-11,16-23",)
+
+        self.modules_load = 'source {}/miniapps/mini.env'.format(base)
+
+        def compile_command(wd, prog, nodes, oversub, size):
+            # A HACK
+            if prog in ("bt", "sp"):
+                np = np_square(nodes, oversub)
+            elif prog in ("is", "cg",):
+                np = np_power2(nodes, oversub)
+            else:
+                np = np_func(nodes, oversub)
+            # HACK END
+
+            return self.modules_load + '; cd {} ;' \
+                ' make {} NPROCS={} CLASS={}'.format(wd, prog, np, size)
+
+        def np_func(nodes, oversub):
+            return nodes * oversub * cpu_per_node
+
+        common_params = {
+            'compile_command': compile_command,
+            'schedulers': schedulers,
+            'oversub': (2, 4),
+            'nodes': nodes,
+            'size': ('D',),
+        }
+
+        mz_params = {
+            'wd': base + "/NPB3.3.1-MZ/NPB3.3-MZ-MPI/"
+        }
 
         self.group = \
-            manager.BenchGroup(Npb, progs=("bt-mz", "sp-mz"),
-                               sizes=("S",),
-                               np=(2, 4),
-                               schedulers=schedulers,
-                               nodes=nodes,
-                               wd=base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
-            manager.BenchGroup(Npb, progs=("bt-mz", "sp-mz"),
-                               sizes=("W",),
-                               np=(2, 4, 8),
-                               schedulers=schedulers,
-                               nodes=nodes,
-                               wd=base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
-            manager.BenchGroup(Npb,
-                               progs=("bt", "sp"),
-                               sizes=("W", "S"),
-                               np=(4, 9),
-                               schedulers=schedulers,
-                               nodes=nodes,
-                               wd=base + "/NPB3.3.1/NPB3.3-MPI/") + \
-            manager.BenchGroup(Npb,
-                               progs=("cg", "ep", "ft",
-                                      "is", "lu", "mg"),
-                               sizes=("W", "S"),
-                               np=(2, 4, 8),
-                               schedulers=schedulers,
-                               nodes=nodes,
-                               wd=base + "/NPB3.3.1/NPB3.3-MPI/")
+            manager.BenchGroup(Npb, **common_params, **mz_params,
+                               np=np_func,
+                               prog=("bt-mz", "sp-mz"))
+
+        npb_params = {
+            'wd': base + "/NPB3.3.1/NPB3.3-MPI/"
+        }
+
+        self.group += \
+            manager.BenchGroup(Npb, **common_params, **npb_params,
+                               np=np_func,
+                               prog=("ep", "lu", "mg"))
+
+        def np_power2(nodes, oversub):
+            return nodes * oversub * cpu_per_node
+
+        self.group += \
+            manager.BenchGroup(Npb, **common_params, **npb_params,
+                               np=np_power2,
+                               prog=("is", "cg",))
+
+        self.group += \
+            manager.BenchGroup(Npb, **common_params, **npb_params,
+                               np=np_power2,
+                               prog=("ft",))
+
+        def np_square(nodes, oversub):
+            np = nodes * oversub * cpu_per_node
+            return math.floor(math.sqrt(np))**2
+
+        self.group += \
+            manager.BenchGroup(Npb, **common_params, **npb_params,
+                               np=np_square,
+                               prog=("bt", "sp"))
 
         self.mpiexec = 'mpirun_rsh'
         self.mpiexec_np = '-np'
@@ -50,8 +90,8 @@ class Taurus(manager.Machine):
         self.preload = 'LD_PRELOAD={}'
 
         self.lib = manager.Lib('mvapich',
-                               compile_pre='source ~/scr/pi/pi.env',
-                               compile_flags='')
+                               compile_pre=self.modules_load,
+                               compile_flags='-Dfortran=OFF -Dtest=ON')
 
         self.env = os.environ.copy()
         self.env['OMP_NUM_THREADS'] = '1'
@@ -59,8 +99,6 @@ class Taurus(manager.Machine):
         self.env['INTERFERENCE_HACK'] = 'true'
 
         self.prefix = 'INTERFERENCE'
-
-        self.affinities = ("2-3", "1,3")
 
         self.runs = (i for i in range(3))
         self.benchmarks = self.group.benchmarks
@@ -79,13 +117,12 @@ class Taurus(manager.Machine):
         return p.stdout.decode('UTF-8').splitlines()
 
     def format_command(self, context):
-        parameters = " ".join([self.mpiexec_hostfile.format(self.hostfile.path),
+        parameters = " ".join([self.mpiexec_hostfile.format(context.hostfile.path),
                                self.mpiexec_np, str(context.bench.np),
                                '-ssh',
                                '-export-all'])
-        source = "source {}/scr/pi/pi.env".format(self.env['HOME'])
         command = "{} ; taskset 0xFFFFFFFF {} {} {} ./bin/{}"
-        return command.format(source, self.mpiexec, parameters,
+        return command.format(self.modules_load, self.mpiexec, parameters,
                               self.preload.format(self.get_lib()),
                               context.bench.name)
 
