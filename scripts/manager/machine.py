@@ -55,6 +55,9 @@ class Machine:
 
             # execute compilation command
             for b in self.benchmarks:
+                if self.args.filter.skip(b):
+                    continue
+
                 print(b)
                 if b in cache:
                     b.fail = cache.compiled[b]
@@ -71,6 +74,9 @@ class Machine:
             (run, bench, env, affinity) = cfg
 
             if bench.fail:
+                continue
+
+            if self.args.filter.skip(bench):
                 continue
 
             with self.create_context(self, cfg) as context:

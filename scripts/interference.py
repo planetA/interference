@@ -7,6 +7,29 @@ from argparse import ArgumentParser
 from conf import *
 
 
+class Filter(object):
+    def __init__(self, filter_str):
+        self.params = dict(map(lambda x: x.split('='), filter_str.split(':')))
+        for k in self.params:
+            self.params[k] = self.params[k].split(',')
+
+    def skip(self, bench):
+        for k in self.params:
+            if k in bench.__dict__:
+                present = False
+                for v in self.params[k]:
+                    val = type(bench.__dict__[k])(v)
+                    if val == bench.__dict__[k]:
+                        present = True
+                        break
+                if not present:
+                    return True
+        return  False
+
+    def create_filter(filter_str):
+        return Filter(filter_str)
+
+
 def parse_args():
     parser = ArgumentParser()
     parser.add_argument('--machine',
@@ -30,6 +53,10 @@ def parse_args():
                             help='Cache compilation results, use cache if possible.',
                             action='store_true',
                             default=False)
+    run_parser.add_argument('--filter',
+                            help='String which specfies which subset of benchmarks to run',
+                            type=Filter.create_filter,
+                            dest='filter')
     run_parser.set_defaults(comm='run')
 
     compile_parser = \
