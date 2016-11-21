@@ -13,7 +13,7 @@ class Taurus(manager.Machine):
         base = os.environ['HOME'] + '/interference-bench/'
 
         cpu_per_node = 16
-        nodes = (2, 4, 8)
+        nodes = (2, 4, 8, 16)
         schedulers = ("cfs", "pinned")
         self.affinities = ("4-11,16-23",)
 
@@ -40,7 +40,7 @@ class Taurus(manager.Machine):
             'schedulers': schedulers,
             'oversub': (2, 4),
             'nodes': nodes,
-            'size': ('D',),
+            'size': ('C', 'D',),
         }
 
         mz_params = {
