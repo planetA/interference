@@ -11,23 +11,25 @@ class Taurus_AMPI(manager.Machine):
     def __init__(self, args):
         self.env = os.environ.copy()
 
-        cpu_per_node = 24
-
-        def np_func(nodes):
+        def np_func(nodes, cpu_per_node):
             return nodes * cpu_per_node
 
-        def vp_func(nodes, oversub):
-            return np_func(nodes) * oversub
+        def vp_func(nodes, oversub, cpu_per_node):
+            return np_func(nodes, cpu_per_node) * oversub
 
-        def comd_size_param(nodes, oversub):
-            np = vp_func(nodes, oversub)
+        def comd_size_param(nodes, oversub, cpu_per_node):
+            np = vp_func(nodes, oversub, cpu_per_node)
             # Ensure that f has at least 3 groups
             domains = Miniapp.partition(np, 3)
             problem_size = '-x 200 -y 200 -z 200'
             decomposition = '-i {} -j {} -k {} '.format(*domains)
             return decomposition + problem_size
 
-        nodes = (1, 2, 4, 8, 16)
+        common_params = {
+            'cpu_per_node': (2, 6, 12, 24),
+            'oversub': (1, 2, 4, 12),
+            'nodes': (1, 2, 4, 8, 16)
+        }
         schedulers = ("none", )
         self.affinities = ("0-23",)
 
@@ -40,13 +42,11 @@ class Taurus_AMPI(manager.Machine):
             return 'cd {}/../ ; make'.format(wd)
 
         self.group = \
-            manager.BenchGroup(Miniapp, prog=("CoMD-ampi",),
-                               oversub=(1, 2, 4),
+            manager.BenchGroup(Miniapp, prog=("CoMD-ampi",), **common_params,
                                size=(1,),
                                vp=vp_func,
                                np=np_func,
                                schedulers=schedulers,
-                               nodes=nodes,
                                compile_command=compile_command,
                                size_param=comd_size_param,
                                wd=base + "CoMD-1.1/bin/",
@@ -61,34 +61,33 @@ class Taurus_AMPI(manager.Machine):
             return "default {} {}".format(decomposition, global_zones)
 
         self.group += \
-            manager.BenchGroup(Miniapp, prog=("lassen_mpi",),
-                               oversub=(1, 2, 4),
+            manager.BenchGroup(Miniapp, prog=("lassen_mpi",), **common_params,
                                size_param=lassen_size_param,
                                vp=vp_func,
                                size=(1,),
-                               nodes=nodes,
                                np=np_func,
                                schedulers=schedulers,
                                max_nodes=max(nodes),
                                wd=base + "Lassen-1.0/",
                                tmpl=tmpl)
 
-        def lulesh_np_func(nodes):
-            return {1: 8, 2: 27, 4: 64,
-                    8: 125, 16: 343, 32: 729, 64: 1331}[nodes]
+        def lulesh_np_func(nodes, cpu_per_node):
+            n = nodes * cpu_per_node
+            c = int(n**(1 / 3.))
+            if c**3 == n or (c + 1)**3 == n:
+                return n
+            return floor(n**(1 / 3.))**3
 
-        def lulesh_vp_func(nodes, oversub):
-            return lulesh_np_func(nodes * oversub)
+        def lulesh_vp_func(nodes, oversub, cpu_per_node):
+            return lulesh_np_func(nodes, cpu_per_node * oversub)
 
         self.group += \
-            manager.BenchGroup(Miniapp, prog=("lulesh2.0",),
-                               oversub=(1, 2, 4),
+            manager.BenchGroup(Miniapp, prog=("lulesh2.0",), **common_params,
                                size=(1,),
                                size_param=("-i 300 -c 10 -b 3",),
                                vp=lulesh_vp_func,
                                np=lulesh_np_func,
                                schedulers=schedulers,
-                               nodes=nodes,
                                wd=base + "Lulesh-2.0/",
                                tmpl=tmpl)
 
