@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <set>
 #include <string>
 #include <sstream>
 #include <iterator>
@@ -13,15 +14,15 @@
 
 #include "interference.h"
 #include "interference_mpi.h"
+#include "counter.hpp"
 
 std::string PREFIX;
 std::string sched;
+std::string output_format;
 std::vector<int> affinity;
 int localid;
-int working_cpu;
+int ranks;
 bool mvapich_hack = false;
-
-std::chrono::time_point<std::chrono::system_clock> start, end;
 
 std::vector<int> parse_affinity(std::string cpu_string)
 {
@@ -103,6 +104,15 @@ void parse_env()
     localid = 0;
   }
 
+  auto output_format_ptr = std::getenv("INTERFERENCE_OUTPUT");
+  if (output_format_ptr) {
+    output_format = std::string(output_format_ptr);
+    if (output_format != "json")
+      throw std::runtime_error("INTERFERENCE_OUTPUT requests unknown format");
+  } else {
+    output_format = "csv";
+  }
+
   if (std::getenv("INTERFERENCE_HACK"))
     mvapich_hack = true;
 }
@@ -136,83 +146,166 @@ static void set_own_affinity(const std::vector<int> &cpus)
   set_own_affinity(cpu_set);
 }
 
+
+class WallClock : public IntervalCounter<wall_time_t> {
+public:
+  using IntervalCounter<wall_time_t>::IntervalCounter;
+
+  void get_value(wall_time_t &val) {
+    val = std::chrono::system_clock::now();
+  }
+
+  void exchange() {
+    auto diff = end - start;
+    long diff_long = std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
+
+    _values.resize(_ranks);
+    gather_longs(diff_long, _values.data());
+  }
+};
+
+class ProcReader : public IntervalCounter<milli_time_t> {
+  std::vector<std::string> get_stat_strings()
+  {
+    std::ifstream proc("/proc/self/stat");
+
+    std::string line;
+    std::getline(proc, line);
+    std::istringstream iss(line);
+
+    std::vector<std::string> tokens;
+    std::copy(std::istream_iterator<std::string>(iss),
+              std::istream_iterator<std::string>(),
+              std::back_inserter(tokens));
+
+    return tokens;
+  }
+
+public:
+  using IntervalCounter<milli_time_t>::IntervalCounter;
+
+  void get_value(milli_time_t &val) {
+    std::vector<std::string> tokens = get_stat_strings();
+
+    val = milli_time_t(std::stol(tokens[13]) * 1000 / sysconf(_SC_CLK_TCK));
+  }
+
+  void exchange() {
+    auto diff = end - start;
+    _values.resize(_ranks);
+    gather_longs(diff.count(), _values.data());
+  }
+};
+
+class CPUaccounter : public SingleCounter<long> {
+public:
+  using SingleCounter<long>::SingleCounter;
+
+  void start_accounting() {
+    if (sched == "pinned") {
+      _value = affinity[localid % affinity.size()];
+      set_own_affinity(_value);
+    } else if (sched == "cfs") {
+      _value = -1;
+      set_own_affinity(affinity);
+    }
+  }
+};
+
+class LocalId : public SingleCounter<long> {
+public:
+  using SingleCounter<long>::SingleCounter;
+
+  void start_accounting() {
+    _value = localid;
+  }
+};
+
+class HostNameAccounter : public SingleCounter<std::string> {
+public:
+  using SingleCounter<std::string>::SingleCounter;
+
+  void start_accounting() {
+    // Assume no overflow happens
+    _value.resize(name_len);
+    gethostname(_value.data(), name_len);
+    _value[name_len - 1] = '\0';
+  }
+};
+
+class IterAccounter : public SingleCounter<long> {
+public:
+  using SingleCounter<long>::SingleCounter;
+
+  void start_accounting() {
+    _value = 1;
+  }
+};
+
+class InterferenceAccounter : public Accounter {
+public:
+  InterferenceAccounter(int ranks) :
+    Accounter(ranks)
+  {
+    typedef std::unique_ptr<Counter> counter_ptr;
+    _counters.push_back(counter_ptr(new IterAccounter(ranks, "ITER")));
+    _counters.push_back(counter_ptr(new HostNameAccounter(ranks, "NODE")));
+    _counters.push_back(counter_ptr(new LocalId(ranks, "LOCALID")));
+    _counters.push_back(counter_ptr(new CPUaccounter(ranks, "CPU")));
+    _counters.push_back(counter_ptr(new WallClock(ranks, "WTIME")));
+    _counters.push_back(counter_ptr(new ProcReader(ranks, "UTIME")));
+  }
+
+  void dump_csv(const CounterMap &map) {
+    for (int i = 0; i < _ranks; i++) {
+      std::cout << PREFIX
+                << " ,RANK: " << i;
+      for (const auto &cnt : map) {
+        std::cout << " ," << cnt.first << ": "
+                  << cnt.second[i];
+      }
+      std::cout << std::endl;
+    }
+  }
+
+  void dump_json(const CounterMap &map) {
+  }
+
+  void dump(const std::string &output, const std::set<std::string> &filter = std::set<std::string>()) {
+    int my_rank = get_my_rank();
+    if (my_rank != 0)
+      return;
+
+    auto map = generate_map(filter);
+
+    if (output == "csv") {
+      dump_csv(map);
+    } else if (output == "json") {
+      dump_json(map);
+    } else {
+      throw std::runtime_error("Unknown output format: " + output);
+    }
+  }
+};
+
+std::unique_ptr<InterferenceAccounter> accounter;
+
 void interference_start()
 {
   parse_env();
 
-  if (sched == "pinned") {
-    working_cpu = affinity[localid % affinity.size()];
-    set_own_affinity(working_cpu);
-  } else if (sched == "cfs") {
-    working_cpu = -1;
-    set_own_affinity(affinity);
-  }
+  ranks = get_ranks();
 
-  start = std::chrono::system_clock::now();
-}
-
-static std::vector<std::string> get_stat_strings()
-{
-  std::ifstream proc("/proc/self/stat");
-
-  std::string line;
-  std::getline(proc, line);
-  std::istringstream iss(line);
-
-  std::vector<std::string> tokens;
-  std::copy(std::istream_iterator<std::string>(iss),
-            std::istream_iterator<std::string>(),
-            std::back_inserter(tokens));
-
-  return tokens;
+  accounter = std::unique_ptr<InterferenceAccounter>(new InterferenceAccounter(ranks));
+  accounter->start_accounting();
 }
 
 void interference_end()
 {
-  end = std::chrono::system_clock::now();
-
-  auto wtime = end - start;
   // Here we should read stat
-  std::vector<std::string> tokens = get_stat_strings();
+  accounter->end_accounting();
 
-  std::chrono::duration<long,std::milli> utime(std::stol(tokens[13]) * 1000 / sysconf(_SC_CLK_TCK));
-
-  int ranks = get_ranks();
-  std::vector<long> utimes(ranks);
-  gather_longs(std::chrono::duration_cast<std::chrono::milliseconds>(utime).count(), utimes.data());
-
-  std::vector<long> wtimes(ranks);
-  gather_longs(std::chrono::duration_cast<std::chrono::milliseconds>(wtime).count(), wtimes.data());
-
-  std::vector<long> localids(ranks);
-  gather_longs(localid, localids.data());
-
-  std::vector<long> cpus(ranks);
-  gather_longs(working_cpu, cpus.data());
-
-  // Assume no overflow happens
-  const unsigned name_len = 20;
-  char name[name_len];
-  gethostname(name, name_len);
-  name[name_len - 1] = '\0';
-  std::vector<char> names(ranks*name_len);
-  gather_names(name, names.data(), name_len);
-
-
-  int my_rank = get_my_rank();
-
-  if (my_rank == 0) {
-    for (int i = 0; i < ranks; i ++) {
-      std::cout << PREFIX
-                << " ,RANK: " << i
-                << " ,ITER: " << 1
-                << " ,CPU: " << cpus[i]
-                << " ,LOCALID: " << localids[i]
-                << " ,NODE: " << &names[i*name_len]
-                << " ,WTIME: " << wtimes[i]
-                << " ,UTIME: " << utimes[i] << std::endl;
-    }
-  }
+  accounter->dump(output_format);
 
   if (mvapich_hack) {
     barrier();
