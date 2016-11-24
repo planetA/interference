@@ -16,6 +16,10 @@
 #include "interference_mpi.h"
 #include "counter.hpp"
 
+#include "nlohmann/json.hpp"
+
+using json = nlohmann::json;
+
 std::string PREFIX;
 std::string sched;
 std::string output_format;
@@ -107,7 +111,7 @@ void parse_env()
   auto output_format_ptr = std::getenv("INTERFERENCE_OUTPUT");
   if (output_format_ptr) {
     output_format = std::string(output_format_ptr);
-    if (output_format != "json")
+    if (output_format != "json" && output_format != "csv")
       throw std::runtime_error("INTERFERENCE_OUTPUT requests unknown format");
   } else {
     output_format = "csv";
@@ -269,6 +273,17 @@ public:
   }
 
   void dump_json(const CounterMap &map) {
+    json j;
+
+    for (int i = 0; i < _ranks; i++) {
+      json row;
+      for (const auto &cnt : map) {
+        row[cnt.first] = cnt.second[i];
+      }
+      j.push_back(row);
+    }
+
+    std::cout << j.dump() << std::endl;
   }
 
   void dump(const std::string &output, const std::set<std::string> &filter = std::set<std::string>()) {
