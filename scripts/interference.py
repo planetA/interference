@@ -169,6 +169,8 @@ def create_machine(args):
         return Taurus_Mini(args)
     elif args.machine == 'taurus-ampi':
         return Taurus_AMPI(args)
+    elif args.machine == 'taurus-rsrv':
+        return Taurus_Rsrv(args)
 
     raise Exception("Failed to identify the machine." +
                     " Probably you need to create a new configuration")
