@@ -29,6 +29,13 @@ class Filter(object):
     def create_filter(filter_str):
         return Filter(filter_str)
 
+class EmptyFilter(Filter):
+    def __init__(self):
+        pass
+
+    def skip(self, bench):
+        return False
+
 class Writer:
     def __init__(self, filename):
         self.filename = filename
@@ -130,6 +137,7 @@ def parse_args():
     run_parser.add_argument('--filter',
                             help='String which specfies which subset of benchmarks to run',
                             type=Filter.create_filter,
+                            default=EmptyFilter(),
                             dest='filter')
     run_parser.add_argument('--writer',
                             help='Output format.',
