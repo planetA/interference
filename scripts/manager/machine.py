@@ -105,28 +105,7 @@ class Machine:
                     print("".join(out))
                     print("".join(err))
                     continue
-                for l in results:
-                    row = {k.strip(): v.strip()
-                           for (k, v) in
-                           map(lambda x: x.split(':'),
-                               filter(lambda x: ':' in x,
-                                      l.split(',')))}
-                    print(row)
-                    runtimes_log.writerow([bench.prog,
-                                           bench.nodes,
-                                           bench.np,
-                                           bench.size,
-                                           bench.oversub,
-                                           run,
-                                           bench.schedulers,
-                                           affinity,
-                                           row['CPU'],
-                                           row['RANK'],
-                                           row['NODE'],
-                                           row['ITER'],
-                                           row['UTIME'],
-                                           row['WTIME']])
-                runtimes_file.flush()
+                writer.submit(run, bench, results)
                 print('=' * 40)
 
     def compile_libs(self):

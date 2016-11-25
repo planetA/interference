@@ -4,6 +4,7 @@ from stat import *
 
 
 class Context:
+    """ Context is needed to create temporary files"""
     class File:
         def __init__(self, context, field, directory, prefix):
             if not hasattr(context, field):
