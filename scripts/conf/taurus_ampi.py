@@ -25,13 +25,15 @@ class Taurus_AMPI(manager.Machine):
             decomposition = '-i {} -j {} -k {} '.format(*domains)
             return decomposition + problem_size
 
+        schedulers = ("none", )
+        affinity = ("0-23",)
+
         common_params = {
             'cpu_per_node': (2, 6, 12, 24),
             'oversub': (1, 2, 4, 12),
-            'nodes': (1, 2, 4, 8, 16)
+            'nodes': (1, 2, 4, 8, 16),
+            'affinity': affinity
         }
-        schedulers = ("none", )
-        self.affinities = ("0-23",)
 
         base = self.env['HOME'] + "/interference-bench/"
 

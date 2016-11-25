@@ -36,16 +36,17 @@ class Machine:
         lib = "/../../install-{}/usr/local/lib/"
         return self.get_script_path() + lib.format(self.suffix)
 
-    def configurations(self):
+    def configurations(self, writer):
         confs = tuple(
-            itertools.product(self.runs, self.benchmarks, self.affinities))
+            itertools.product(self.runs, self.benchmarks))
         res = list()
-        for (run, bench, affinity) in confs:
-            print(run, bench, affinity)
+        for (run, bench) in confs:
+            print(run, bench, bench.affinity)
             env = self.env.copy()
-            env['INTERFERENCE_AFFINITY'] = affinity
+            env['INTERFERENCE_AFFINITY'] = bench.affinity
             env['INTERFERENCE_SCHED'] = bench.schedulers
-            res.append((run, bench, env, affinity))
+            env['INTERFERENCE_OUTPUT'] = repr(writer)
+            res.append((run, bench, env))
         return res
 
     def compile_benchmarks(self):
@@ -68,10 +69,10 @@ class Machine:
 
                 cache.add(b)
 
-    def run_benchmarks(self, runtimes_log, runtimes_file):
+    def run_benchmarks(self, writer):
         print('-' * 62)
-        for cfg in self.configurations():
-            (run, bench, env, affinity) = cfg
+        for cfg in self.configurations(writer):
+            (run, bench, env) = cfg
 
             if bench.fail:
                 continue

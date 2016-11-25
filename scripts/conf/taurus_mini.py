@@ -42,6 +42,7 @@ class Taurus_Mini(manager.Machine):
             'size': (1,),
             'np': np_func,
             'nodes': nodes,
+            'affinity': ("0-23",),
             'size_param': comd_size_param,
             'wd': base + "CoMD/bin",
             'compile_command': compile_command,
@@ -64,6 +65,7 @@ class Taurus_Mini(manager.Machine):
             'prog': ("lassen_mpi",),
             'size_param': lassen_size_param,
             'size': (1,),
+            'affinity': ("0-23",),
             'nodes': nodes,
             'np': np_func,
             'max_nodes': max(nodes),
@@ -83,6 +85,7 @@ class Taurus_Mini(manager.Machine):
             'prog': ("lulesh2.0",),
             'size_param': ("-i 300 -c 10 -b 3",),
             'size': (1,),
+            'affinity': ("0-23",),
             'nodes': nodes,
             'np': lulesh_np_func,
             'wd': base + "lulesh2.0.3/",
@@ -108,8 +111,6 @@ class Taurus_Mini(manager.Machine):
         self.env['INTERFERENCE_HACK'] = 'true'
 
         self.prefix = 'INTERFERENCE'
-
-        self.affinities = ("0-23",)
 
         self.runs = (i for i in range(3))
         self.benchmarks = self.group.benchmarks

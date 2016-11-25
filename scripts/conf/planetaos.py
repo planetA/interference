@@ -10,35 +10,34 @@ class PlanetaOS(manager.Machine):
     def __init__(self, args):
         base = "/home/desertfox/research/projects/ffmk/interference-bench/"
 
-        nodes = (1,)
-        schedulers = ("cfs", "pinned")
+        common_params = {
+            'nodes': (1,),
+            'schedulers': ("cfs", "pinned"),
+            'affinity': ("2-3", "1,3"),
+        }
         self.group = \
             manager.BenchGroup(Npb, prog=("bt-mz", "sp-mz"),
                                size=("S",),
                                np=(2, 4),
-                               schedulers=schedulers,
-                               nodes=nodes,
+                               **common_params,
                                wd=base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
             manager.BenchGroup(Npb, prog=("bt-mz", "sp-mz"),
                                size=("W",),
                                np=(2, 4, 8),
-                               schedulers=schedulers,
-                               nodes=nodes,
+                               **common_params,
                                wd=base + "NPB3.3.1-MZ/NPB3.3-MZ-MPI/") + \
             manager.BenchGroup(Npb,
                                prog=("bt", "sp"),
                                size=("W", "S"),
                                np=(4, 9),
-                               schedulers=schedulers,
-                               nodes=nodes,
+                               **common_params,
                                wd=base + "/NPB3.3.1/NPB3.3-MPI/") + \
             manager.BenchGroup(Npb,
                                prog=("cg", "ep", "ft",
                                      "is", "lu", "mg"),
                                size=("W", "S"),
                                np=(2, 4, 8),
-                               schedulers=schedulers,
-                               nodes=nodes,
+                               **common_params,
                                wd=base + "/NPB3.3.1/NPB3.3-MPI/")
 
         self.mpiexec = 'mpirun'
@@ -54,7 +53,6 @@ class PlanetaOS(manager.Machine):
 
         self.prefix = 'INTERFERENCE'
 
-        self.affinities = ("2-3", "1,3")
 
         self.runs = (i for i in range(3))
         self.benchmarks = self.group.benchmarks
