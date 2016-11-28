@@ -1,5 +1,14 @@
 #pragma once
 
+#include <map>
+#include <string>
+#include <vector>
+#include <chrono>
+#include <memory>
+#include <set>
+
+#include "interference_mpi.h"
+
 typedef std::map<std::string, std::vector<std::string>> CounterMap;
 
 class Counter {
@@ -90,52 +99,10 @@ public:
     exchange();
   }
 
-private:
+protected:
   void exchange() {
     _values.resize(_ranks);
-    gather_longs(long(_value), _values.data());
-  }
-};
-
-template<>
-class SingleCounter<std::string> : public Counter {
-protected:
-  std::vector<char> _value;
-
-  int _ranks;
-  std::vector<char> _values;
-  const unsigned name_len;
-
-public:
-  SingleCounter(int ranks, std::string name, unsigned name_len = 20) :
-    Counter(name),
-    _ranks(ranks),
-    name_len(name_len)
-  {
-  }
-
-  CounterMap emit() {
-    CounterMap map;
-    std::vector<std::string> str_values;
-
-    for (int i = 0; i < _ranks; i ++) {
-      auto name = std::string(_values.data() + i * name_len);
-      str_values.push_back(name);
-    }
-
-    map[_name] = str_values;
-    return map;
-  }
-
-  void start_accounting() {}
-  void end_accounting() {
-    exchange();
-  }
-
-private:
-  void exchange() {
-    _values.resize(name_len * _ranks);
-    gather_names(_value.data(), _values.data(), name_len);
+    gather(&_value, sizeof(long), _values.data());
   }
 };
 

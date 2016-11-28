@@ -15,6 +15,7 @@
 #include "interference.h"
 #include "interference_mpi.h"
 #include "counter.hpp"
+#include "perf.hpp"
 
 #include "nlohmann/json.hpp"
 
@@ -22,10 +23,8 @@ using json = nlohmann::json;
 
 std::string PREFIX;
 std::string sched;
-std::string output_format;
 std::vector<int> affinity;
 int localid;
-int ranks;
 bool mvapich_hack = false;
 
 std::vector<int> parse_affinity(std::string cpu_string)
@@ -108,15 +107,6 @@ void parse_env()
     localid = 0;
   }
 
-  auto output_format_ptr = std::getenv("INTERFERENCE_OUTPUT");
-  if (output_format_ptr) {
-    output_format = std::string(output_format_ptr);
-    if (output_format != "json" && output_format != "csv")
-      throw std::runtime_error("INTERFERENCE_OUTPUT requests unknown format");
-  } else {
-    output_format = "csv";
-  }
-
   if (std::getenv("INTERFERENCE_HACK"))
     mvapich_hack = true;
 }
@@ -164,7 +154,7 @@ public:
     long diff_long = std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
 
     _values.resize(_ranks);
-    gather_longs(diff_long, _values.data());
+    gather(&diff_long, sizeof(diff_long), _values.data());
   }
 };
 
@@ -196,8 +186,9 @@ public:
 
   void exchange() {
     auto diff = end - start;
+    long diff_long = diff.count();
     _values.resize(_ranks);
-    gather_longs(diff.count(), _values.data());
+    gather(&diff_long, sizeof(diff_long), _values.data());
   }
 };
 
@@ -225,9 +216,37 @@ public:
   }
 };
 
-class HostNameAccounter : public SingleCounter<std::string> {
+class HostNameAccounter : public Counter {
+protected:
+  std::vector<char> _value;
+
+  int _ranks;
+  std::vector<char> _values;
+  const unsigned name_len;
 public:
-  using SingleCounter<std::string>::SingleCounter;
+  HostNameAccounter(int ranks, std::string name, unsigned name_len = 20) :
+    Counter(name),
+    _ranks(ranks),
+    name_len(name_len)
+  {
+  }
+
+  CounterMap emit() {
+    CounterMap map;
+    std::vector<std::string> str_values;
+
+    for (int i = 0; i < _ranks; i ++) {
+      auto name = std::string(_values.data() + i * name_len);
+      str_values.push_back(name);
+    }
+
+    map[_name] = str_values;
+    return map;
+  }
+
+  void end_accounting() {
+    exchange();
+  }
 
   void start_accounting() {
     // Assume no overflow happens
@@ -235,6 +254,13 @@ public:
     gethostname(_value.data(), name_len);
     _value[name_len - 1] = '\0';
   }
+
+private:
+  void exchange() {
+    _values.resize(name_len * _ranks);
+    gather_names(_value.data(), _values.data(), name_len);
+  }
+
 };
 
 class IterAccounter : public SingleCounter<long> {
@@ -246,18 +272,57 @@ public:
   }
 };
 
+
 class InterferenceAccounter : public Accounter {
+  const std::string output_format;
+
+private:
+  typedef std::unique_ptr<Counter> counter_ptr;
+
+  std::vector<std::string> parse_perf_counters(const std::string &str) {
+    std::vector<std::string> result;
+    std::stringstream ss(str);
+    std::string token;
+
+    while(std::getline(ss, token, ',')) {
+      result.push_back(token);
+    }
+  }
+
+  void parse_and_add_perf_counters(const std::string &str) {
+    std::vector<std::string> counter_list;
+    counter_list = parse_perf_counters(str);
+
+    if (counter_list.size() == 0)
+      return;
+
+    for (const auto &cnt : counter_list) {
+      _counters.push_back(counter_ptr(new PerfCounter(_ranks, cnt)));
+    }
+  }
+
 public:
-  InterferenceAccounter(int ranks) :
-    Accounter(ranks)
+  InterferenceAccounter(int ranks, const std::string &output_format) :
+    Accounter(ranks), output_format(output_format)
   {
-    typedef std::unique_ptr<Counter> counter_ptr;
     _counters.push_back(counter_ptr(new IterAccounter(ranks, "ITER")));
     _counters.push_back(counter_ptr(new HostNameAccounter(ranks, "NODE")));
     _counters.push_back(counter_ptr(new LocalId(ranks, "LOCALID")));
     _counters.push_back(counter_ptr(new CPUaccounter(ranks, "CPU")));
     _counters.push_back(counter_ptr(new WallClock(ranks, "WTIME")));
     _counters.push_back(counter_ptr(new ProcReader(ranks, "UTIME")));
+
+    if (output_format != "csv" && output_format != "json") {
+      throw std::runtime_error("Unknown output format: " + output_format);
+    }
+
+    // Allow additional perf counters for json
+    if (output_format == "json") {
+      auto counters = std::getenv("INTERFERENCE_PERF");
+      if (counters) {
+        parse_and_add_perf_counters(counters);
+      }
+    }
   }
 
   void dump_csv(const CounterMap &map) {
@@ -280,25 +345,23 @@ public:
       for (const auto &cnt : map) {
         row[cnt.first] = cnt.second[i];
       }
-      j.push_back(row);
+      j[PREFIX].push_back(row);
     }
 
     std::cout << j.dump() << std::endl;
   }
 
-  void dump(const std::string &output, const std::set<std::string> &filter = std::set<std::string>()) {
+  void dump(const std::set<std::string> &filter = std::set<std::string>()) {
     int my_rank = get_my_rank();
     if (my_rank != 0)
       return;
 
     auto map = generate_map(filter);
 
-    if (output == "csv") {
+    if (output_format == "csv") {
       dump_csv(map);
-    } else if (output == "json") {
+    } else if (output_format == "json") {
       dump_json(map);
-    } else {
-      throw std::runtime_error("Unknown output format: " + output);
     }
   }
 };
@@ -309,9 +372,10 @@ void interference_start()
 {
   parse_env();
 
-  ranks = get_ranks();
+  int ranks = get_ranks();
 
-  accounter = std::unique_ptr<InterferenceAccounter>(new InterferenceAccounter(ranks));
+  accounter = std::unique_ptr<InterferenceAccounter>(
+    new InterferenceAccounter(ranks, std::getenv("INTERFERENCE_OUTPUT")));
   accounter->start_accounting();
 }
 
@@ -320,7 +384,7 @@ void interference_end()
   // Here we should read stat
   accounter->end_accounting();
 
-  accounter->dump(output_format);
+  accounter->dump();
 
   if (mvapich_hack) {
     barrier();
