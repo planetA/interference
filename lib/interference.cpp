@@ -42,6 +42,7 @@ std::vector<int> parse_affinity(std::string cpu_string)
 
   std::string::const_iterator start = cpu_string.begin();
   std::string::const_iterator end = cpu_string.end();
+
   while (std::regex_search(start, end, what, r)) {
     // what[1] single or a range of cpus
     if (!what[1].matched)
