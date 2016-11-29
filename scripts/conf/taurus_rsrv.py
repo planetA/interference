@@ -114,13 +114,14 @@ class Taurus_Rsrv(manager.Machine):
         if p.returncode:
             raise Exception("Failed to get hosts")
 
-        return ",".join(p.stdout.decode('UTF-8').split())
+        return p.stdout.decode('UTF-8').split()
 
     def create_context(self, machine, cfg):
         return manager.Context(machine, cfg)
 
     def format_command(self, context):
-        parameters = " ".join([self.mpiexec_hostfile.format(self.nodelist),
+        nodestr = ",".join(self.nodelist[:context.bench.nodes])
+        parameters = " ".join([self.mpiexec_hostfile.format(nodestr),
                                self.mpiexec_np, str(context.bench.np)])
         command = "{} ; taskset 0xFFFFFFFF {} {} {} ./bin/{}"
         return command.format(self.modules_load, self.mpiexec, parameters,
