@@ -73,6 +73,10 @@ PerfCounter::PerfCounter(int ranks, std::string name) :
   build_perf_attr(&event, name);
 
   _fd = perf_event_open(&event, 0, -1, -1, 0);
+  if (_fd == -1) {
+    auto err = strerror(errno);
+    throw std::runtime_error("Failed to create event: " + _name + "  " + err);
+  }
 }
 
 void PerfCounter::start_accounting()
@@ -86,7 +90,7 @@ void PerfCounter::end_accounting()
   ioctl(_fd, PERF_EVENT_IOC_DISABLE, 0);
   auto ret = read(_fd, &_value, sizeof(_value));
   if (ret != sizeof(_value)) {
-    throw std::runtime_error("Failed to read counter: " + _name);
+    throw std::runtime_error("Failed to read counter: " + _name + "  " + strerror(errno));
   }
   exchange();
 }
