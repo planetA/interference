@@ -5,8 +5,6 @@ import json
 
 from argparse import ArgumentParser
 
-from conf import *
-
 class Filter(object):
     def __init__(self, filter_str):
         self.params = dict(map(lambda x: x.split('='), filter_str.split(':')))
@@ -161,22 +159,33 @@ def parse_args():
 def create_machine(args):
     print(args.machine)
     if args.machine == 'guess':
+        from conf.planetaos import PlanetaOS
+        from conf.taurus import Taurus
         if PlanetaOS.correct_guess():
             return PlanetaOS(args)
         elif Taurus.correct_guess():
             return Taurus(args)
     elif args.machine == 'planeta':
+        from conf.planetaos import PlanetaOS
         return PlanetaOS(args)
     elif args.machine == 'taurus':
+        from conf.taurus import Taurus
         return Taurus(args)
     elif args.machine == 'planeta-ampi':
+        from conf.planeta_ampi import PlanetaOS_AMPI
         return PlanetaOS_AMPI(args)
     elif args.machine == 'taurus-mini':
+        from conf.taurus_mini import Taurus_Mini
         return Taurus_Mini(args)
     elif args.machine == 'taurus-ampi':
+        from conf.taurus_ampi import Taurus_AMPI
         return Taurus_AMPI(args)
     elif args.machine == 'taurus-rsrv':
+        from conf.taurus_rsrv import Taurus_Rsrv
         return Taurus_Rsrv(args)
+    elif args.machine == 'ffmk':
+        from conf.ffmk import Ffmk
+        return Ffmk(args)
 
     raise Exception("Failed to identify the machine." +
                     " Probably you need to create a new configuration")
