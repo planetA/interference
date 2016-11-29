@@ -121,10 +121,10 @@ def parse_args():
                         default='default')
     parser.set_defaults(comm=None)
 
-    commands = parser.add_subparsers(help='Choose mode of operation')
+    commands = parser.add_subparsers(help='Choose mode of operation', dest='comm')
 
-    run_parser = commands.add_parser(
-        'run', help='Compile and run all benchmarks')
+    run_parser = commands.add_parser('run',
+                                     help='Compile and run all benchmarks')
     run_parser.add_argument('-o',
                             help='Where to dump all runtimes.',
                             type=str,
@@ -144,13 +144,11 @@ def parse_args():
                             default='csv',
                             choices=[CsvWriter, JsonWriter],
                             type=Writer.create_writer)
-    run_parser.set_defaults(comm='run')
 
     compile_parser = \
         commands.add_parser('prepare',
                             help='Prepare libinterference for a specific MPI library')
     compile_parser.add_argument('target', default=['default'])
-    compile_parser.set_defaults(comm='prepare')
 
     args = parser.parse_args()
     if args.comm is None:
