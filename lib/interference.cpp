@@ -287,6 +287,8 @@ private:
     while(std::getline(ss, token, ',')) {
       result.push_back(token);
     }
+
+    return result;
   }
 
   void parse_and_add_perf_counters(const std::string &str) {
