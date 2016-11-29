@@ -47,6 +47,13 @@ void cpu_list_test()
     assert(cpus.size() == 7);
     assert((cpus == std::vector<int>{1, 3, 4, 5, 6, 7, 15}));
   }
+
+  {
+    std::vector<int> cpus = parse_affinity("4-11,16-23");
+
+    assert(cpus.size() == 16);
+    assert((cpus == std::vector<int>{4, 5, 6, 7, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22, 23}));
+  }
 }
 
 
