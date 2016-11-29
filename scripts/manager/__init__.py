@@ -1,3 +1,8 @@
+def m(x, y):
+    z = x.copy()
+    z.update(y)
+    return z
+
 from .machine import Machine
 from .cache import Cache
 from .benchmark import Benchmark, BenchGroup

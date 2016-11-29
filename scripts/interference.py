@@ -5,6 +5,8 @@ import json
 
 from argparse import ArgumentParser
 
+from conf import m
+
 class Filter(object):
     def __init__(self, filter_str):
         self.params = dict(map(lambda x: x.split('='), filter_str.split(':')))
@@ -98,10 +100,8 @@ class JsonWriter(Writer):
         lines = json.loads(results[0])
         for l in lines["INTERFERENCE"]:
             bench_dict = {k : v for (k,v) in bench.__dict__.items() if k not in self.skiplist}
-            row = {'run': run,
-                   **bench_dict,
-                   **l
-            }
+            row = m({'run': run},
+                    m(bench_dict, l))
             self.rows.append(row)
 
     def __exit__(self, exc_type, exc_value, traceback):

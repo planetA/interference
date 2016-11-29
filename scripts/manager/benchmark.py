@@ -1,6 +1,7 @@
 import itertools
 import subprocess as sp
 
+from . import m
 
 class Benchmark:
     class SafeDict(dict):
@@ -55,7 +56,7 @@ class BenchGroup:
         lists = {k: kwargs[k] for k in filter(is_container, kwargs)}
         params = [dict(zip(lists, p))
                   for p in itertools.product(*lists.values())]
-        params = [{**rest, **i} for i in params]
+        params = [m(rest, i) for i in params]
         self.benchmarks = tuple(BenchmarkClass(**i) for i in params)
         print([str(i) for i in self.benchmarks])
 
