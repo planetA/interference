@@ -24,6 +24,12 @@ void PerfCounter::build_perf_attr(struct perf_event_attr *attr,
 {
   memset(attr, 0, sizeof(struct perf_event_attr));
 
+  attr->disabled = 1;
+  attr->exclude_hv = 1;
+  // For some event we need to take kernel into account
+  attr->exclude_kernel = 1;
+  attr->size = sizeof(struct perf_event_attr);
+
   if (event == "cpu_cycles") {
     attr->type   = PERF_TYPE_HARDWARE;
     attr->config = PERF_COUNT_HW_CPU_CYCLES;
@@ -45,20 +51,19 @@ void PerfCounter::build_perf_attr(struct perf_event_attr *attr,
   } else if (event == "migrations") {
     attr->type   = PERF_TYPE_SOFTWARE;
     attr->config = PERF_COUNT_SW_CPU_MIGRATIONS;
+    attr->exclude_kernel = 0;
   } else if (event == "page_faults") {
     attr->type   = PERF_TYPE_SOFTWARE;
     attr->config = PERF_COUNT_SW_PAGE_FAULTS;
+    attr->exclude_kernel = 0;
   } else if (event == "context_switches") {
     attr->type   = PERF_TYPE_SOFTWARE;
     attr->config = PERF_COUNT_SW_CONTEXT_SWITCHES;
+    attr->exclude_kernel = 0;
   } else {
     throw std::runtime_error("Unknown perf event requested " + event);
   }
 
-  attr->disabled = 1;
-  attr->exclude_kernel = 1;
-  attr->exclude_hv = 1;
-  attr->size = sizeof(struct perf_event_attr);
 }
 
 PerfCounter::PerfCounter(int ranks, std::string name) :
