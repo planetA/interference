@@ -88,16 +88,18 @@ class CsvWriter(Writer):
         return 'csv'
 
 class JsonWriter(Writer):
-    def __init__(self, filename):
+    def __init__(self, filename, skiplist = ('wd', 'compile_command', 'tmpl')):
         super().__init__(filename)
         self.name = 'json'
         self.rows = list()
+        self.skiplist = skiplist
 
     def submit(self, run, bench, results):
         lines = json.loads(results[0])
         for l in lines["INTERFERENCE"]:
+            bench_dict = {k : v for (k,v) in bench.__dict__.items() if k not in self.skiplist}
             row = {'run': run,
-                   **bench.__dict__,
+                   **bench_dict,
                    **l
             }
             self.rows.append(row)
