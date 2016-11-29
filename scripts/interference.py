@@ -188,6 +188,9 @@ def create_machine(args):
     elif args.machine == 'ffmk':
         from conf.ffmk import Ffmk
         return Ffmk(args)
+    elif args.machine == 'cosel':
+        from conf.cosel import Cosel
+        return Cosel(args)
 
     raise Exception("Failed to identify the machine." +
                     " Probably you need to create a new configuration")
