@@ -2,6 +2,7 @@ set(test_np "4"  CACHE STRING "Parallelism level for testing.")
 
 find_package(MPI REQUIRED)
 include_directories(${MPI_C_INCLUDE_PATH})
+include_directories(${PROJECT_SOURCE_DIR}/lib)
 
 SET(CMAKE_C_COMPILER mpicc)
 SET(CMAKE_CXX_COMPILER mpicxx)
@@ -27,3 +28,7 @@ add_mpi_test(init_test init_test.c)
 add_executable(cpu_list_test cpu_list_test.cpp)
 target_link_libraries(cpu_list_test interference)
 add_test(cpu_list_test cpu_list_test)
+
+add_executable(perf_test perf_test.cpp)
+target_link_libraries(perf_test interference)
+add_test(perf_test perf_test)
