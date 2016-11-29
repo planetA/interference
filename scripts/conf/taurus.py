@@ -98,6 +98,7 @@ class Taurus(manager.Machine):
         self.env['OMP_NUM_THREADS'] = '1'
         self.env['INTERFERENCE_LOCALID'] = 'MV2_COMM_WORLD_LOCAL_RANK'
         self.env['INTERFERENCE_HACK'] = 'true'
+        self.env['INTERFERENCE_PERF'] = 'instructions,cache_references,cache_misses,migrations,page_faults,context_switches'
 
         self.prefix = 'INTERFERENCE'
 
