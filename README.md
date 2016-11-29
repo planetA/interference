@@ -12,11 +12,15 @@ For example, you want to run benchmarks on taurus.
 
 1. Compile preload library, which intercepts `MPI_Init` and `MPI_Finalize`
 
+This step you need to do when you change the library:
+
     $ ./scripts/interference.py --machine taurus prepare taurus
     
 Yes, you need to repeat "taurus" two times. Sorry for that.
 
 2. Run the benchmarks
+
+The command may look as follows:
 
     $ ./scripts/interference.py --machine taurus run --writer json -o runtimes-ffmk-c.log
     
