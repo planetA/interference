@@ -50,3 +50,26 @@ into ~/interference-bench
 You can download ~/interference-bench from erwin: ~mplaneta/interfence-bench
 
 The benchmark directory contains all the benchmarks
+
+## Supplementary
+
+Following is supplementary scripts I use in my workflow.
+
+### compile.sh
+
+I use doc/compile.sh script to deploy current configuration on a
+target machine. May be useful for you, if you modify the machine name.
+
+### mini.env
+
+I also need to setup environment, so I use doc/mini.env, which I put
+into interference-bench/mini.env. This file is reference in the
+machine script.
+
+## MPI Libraries
+
+I heavily rely on mvapich. I also tried to run things with OpenMPI,
+but at the moment my scripts do not support using several mpi
+libraries inside the same machine script. This is left for the future
+work
+
