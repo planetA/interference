@@ -13,7 +13,7 @@ typedef std::map<std::string, std::vector<std::string>> CounterMap;
 
 class Counter {
 protected:
-  std::string _name;
+  const std::string _name;
   virtual void exchange() = 0;
 
 public:
@@ -40,7 +40,7 @@ protected:
   std::vector<long> _values;
 
 public:
-  IntervalCounter(int ranks, std::string name) :
+  IntervalCounter(int ranks, const std::string &name) :
     Counter(name),
     _ranks(ranks)
   {
