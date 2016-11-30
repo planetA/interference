@@ -185,13 +185,26 @@ class ProcReader : public IntervalCounter<milli_time_t> {
     return tokens;
   }
 
+  int _column;
 public:
   using IntervalCounter<milli_time_t>::IntervalCounter;
+
+  enum StatColumn
+  {
+    utime = 13,
+    stime = 14,
+  };
+
+  ProcReader(StatColumn column, int ranks, const std::string &name) :
+    IntervalCounter(ranks, name),
+    _column(column)
+  {}
 
   void get_value(milli_time_t &val) {
     std::vector<std::string> tokens = get_stat_strings();
 
-    val = milli_time_t(std::stol(tokens[13]) * 1000 / sysconf(_SC_CLK_TCK));
+    val = milli_time_t((std::stol(tokens[_column]) * 1000
+                        / sysconf(_SC_CLK_TCK)));
   }
 
   void exchange() {
@@ -344,7 +357,11 @@ public:
     _counters.push_back(counter_ptr(new LocalId(ranks, "LOCALID")));
     _counters.push_back(counter_ptr(new CPUaccounter(ranks, "CPU")));
     _counters.push_back(counter_ptr(new WallClock(ranks, "WTIME")));
-    _counters.push_back(counter_ptr(new ProcReader(ranks, "UTIME")));
+
+    auto utime = ProcReader::StatColumn::utime;
+    _counters.push_back(counter_ptr(new ProcReader(utime, ranks, "UTIME")));
+    auto stime = ProcReader::StatColumn::stime;
+    _counters.push_back(counter_ptr(new ProcReader(stime, ranks, "STIME")));
 
     if (output_format != "csv" && output_format != "json") {
       throw std::runtime_error("Unknown output format: " + output_format);

@@ -68,7 +68,7 @@ class CsvWriter(Writer):
         self.csv = csv.writer(self.log)
         self.csv.writerow(['prog', 'nodes', 'np', 'size', 'oversub', 'run',
                            'sched', 'affinity', 'cpu', 'rank', 'node', 'iter',
-                           'utime', 'wtime'])
+                           'utime', 'wtime', 'stime'])
         return self
 
     def submit(self, run, bench, results):
@@ -83,7 +83,8 @@ class CsvWriter(Writer):
                                bench.size, bench.oversub, run,
                                bench.schedulers, bench.affinity,
                                row['CPU'], row['RANK'], row['NODE'],
-                               row['ITER'], row['UTIME'], row['WTIME']])
+                               row['ITER'],
+                               row['UTIME'], row['WTIME'], row['STIME']])
         self.log.flush()
 
     def __repr__(self):
