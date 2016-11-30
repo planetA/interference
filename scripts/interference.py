@@ -155,7 +155,6 @@ def parse_args():
     compile_parser = \
         commands.add_parser('prepare',
                             help='Prepare libinterference for a specific MPI library')
-    compile_parser.add_argument('target', default=['default'])
 
     args = parser.parse_args()
     if args.comm is None:

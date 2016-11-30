@@ -14,10 +14,8 @@ For example, you want to run benchmarks on taurus.
 
 This step you need to do when you change the library:
 
-    $ ./scripts/interference.py --machine taurus prepare taurus
+    $ ./scripts/interference.py --machine taurus prepare
     
-Yes, you need to repeat "taurus" two times. Sorry for that.
-
 2. Run the benchmarks
 
 The command may look as follows:
