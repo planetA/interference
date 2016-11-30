@@ -51,7 +51,6 @@ class Machine:
             # as second parameters two lines above
             if self.args.run_order == 'consecutive':
                 (run, bench) = (bench, run)
-            print(run, bench, bench.affinity)
             env = self.env.copy()
             env['INTERFERENCE_AFFINITY'] = bench.affinity
             env['INTERFERENCE_SCHED'] = bench.schedulers
@@ -68,8 +67,6 @@ class Machine:
             for b in self.benchmarks:
                 if self.args.filter.skip(b):
                     continue
-
-                print(b)
                 if b in cache:
                     b.fail = cache.compiled[b]
                     print("Skipping: {}".format(b))
