@@ -23,7 +23,6 @@ using json = nlohmann::json;
 
 std::string PREFIX;
 std::vector<int> affinity;
-bool mvapich_hack = false;
 
 /**
  * Parse integer value from an environment variable, which
@@ -110,9 +109,6 @@ void parse_env()
   if (!affinity_ptr)
     throw std::runtime_error("INTERFERENCE_AFFINITY should be set");
   affinity = parse_affinity(affinity_ptr);
-
-  if (std::getenv("INTERFERENCE_HACK"))
-    mvapich_hack = true;
 }
 
 /**
@@ -436,7 +432,7 @@ void interference_end()
 
   accounter->dump();
 
-  if (mvapich_hack) {
+  if (std::getenv("INTERFERENCE_HACK")) {
     barrier();
     std::flush(std::cout);
     exit(0);
