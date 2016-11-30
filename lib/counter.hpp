@@ -78,7 +78,7 @@ protected:
   std::vector<T> _values;
 
 public:
-  SingleCounter(int ranks, std::string name) :
+  SingleCounter(int ranks, const std::string &name) :
     Counter(name),
     _ranks(ranks)
   {
