@@ -13,18 +13,17 @@ class Benchmark:
 
         for k, v in kwargs.items():
             if callable(v):
-                print(k, v)
                 v_arguments = v.__code__.co_varnames[:v.__code__.co_argcount]
                 args = {arg: kwargs[arg] for arg in v_arguments}
                 if len([a for a in args.values() if callable(a)]):
                     raise Exception("Parameter resolution depends " +
                                     "on potenitally unresolved parameters")
                 setattr(self, k, v(**args))
-                print(getattr(self, k))
             else:
                 setattr(self, k, v)
 
     def compile(self, env):
+        print(self.compile_command)
         p = sp.Popen(self.compile_command,
                      cwd=self.wd,
                      env=env,
@@ -58,7 +57,6 @@ class BenchGroup:
                   for p in itertools.product(*lists.values())]
         params = [m(rest, i) for i in params]
         self.benchmarks = tuple(BenchmarkClass(**i) for i in params)
-        print([str(i) for i in self.benchmarks])
 
     def __add__(self, other):
         self.benchmarks = self.benchmarks + other.benchmarks
