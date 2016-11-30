@@ -4,6 +4,7 @@ import socket
 import manager
 
 from .npb import Npb
+from .openmpi import OpenMPI
 
 import math
 
@@ -81,19 +82,7 @@ class PlanetaOS(manager.Machine):
                                np=np_square,
                                prog=("bt", "sp"))
 
-        self.mpiexec = 'mpirun'
-        self.mpiexec_np = '-np'
-        self.mpiexec_hostfile = '-hostfile {}'
-
-        self.preload = '-x LD_PRELOAD={}'
-
-        self.lib = manager.Lib('openmpi')
-
-        self.env['INTERFERENCE_LOCALID'] = 'OMPI_COMM_WORLD_LOCAL_RANK'
-        self.env['INTERFERENCE_LOCAL_SIZE'] = 'OMPI_COMM_WORLD_LOCAL_SIZE'
-
-        self.prefix = 'INTERFERENCE'
-
+        self.mpilib = OpenMPI()
 
         self.runs = (i for i in range(3))
         self.benchmarks = self.group.benchmarks
@@ -105,14 +94,6 @@ class PlanetaOS(manager.Machine):
 
     def get_nodelist(self):
         return [socket.gethostname()]
-
-    def format_command(self, context):
-        parameters = " ".join([self.mpiexec_hostfile.format(context.hostfile.path),
-                               self.mpiexec_np, str(context.bench.np),
-                               self.preload.format(self.get_lib()),
-                               '-oversubscribe',
-                               '--bind-to none'])
-        return "{} {} ./bin/{}".format(self.mpiexec, parameters, context.bench.name)
 
     def correct_guess():
         if socket.gethostname() == 'planeta-os':

@@ -22,9 +22,11 @@ class Machine:
     def __init__(self, args):
         self.args = args
 
+        if not hasattr(self, 'prefix'):
+            self.prefix = 'INTERFERENCE'
         self.env['INTERFERENCE_PREFIX'] = self.prefix
 
-        self.suffix = "{}-{}".format(type(self).__name__, self.lib.name)
+        self.suffix = "{}-{}".format(type(self).__name__, self.mpilib.name)
 
     def get_script_path(self):
         return os.path.dirname(os.path.realpath(__file__))
@@ -89,7 +91,12 @@ class Machine:
                 continue
 
             with self.create_context(self, cfg) as context:
-                command = self.format_command(context)
+                if hasattr(self, 'format_command'):
+                    command = self.format_command(context)
+                elif hasattr(self, 'mpilib'):
+                    command = self.mpilib.format_command(context)
+                else:
+                    raise Exception('Expected {} to have either mpilib or format_command'.format(self.__name__))
                 print("Run ", bench.name, bench.nodes, {
                       i: env[i] for i in filter(lambda k: 'INTERFERENCE' in k, env.keys())})
                 print(command)
@@ -123,9 +130,9 @@ class Machine:
         if not os.path.exists(build_path):
             os.makedirs(build_path)
         sequence = [
-            self.lib.compile_pre,
+            self.mpilib.compile_pre,
             'cd {}'.format(build_path),
-            'cmake .. {}'.format(self.lib.compile_flags),
+            'cmake .. {}'.format(self.mpilib.compile_flags),
             'make clean',
             'make',
             'make install DESTDIR=' + install_path]

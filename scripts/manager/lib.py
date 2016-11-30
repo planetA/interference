@@ -5,3 +5,4 @@ class Lib:
         self.compile_pre = compile_pre
         self.compile_flags = compile_flags
         self.name = name
+        self.prefix = 'INTERFERENCE'
