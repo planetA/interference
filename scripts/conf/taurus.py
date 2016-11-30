@@ -14,7 +14,7 @@ class Taurus(manager.Machine):
 
         cpu_per_node = 16
         nodes = (2, 4, 8, 16)
-        schedulers = ("cfs", "pinned")
+        schedulers = ("cfs", "pinned_cyclic")
         affinity = ("4-11,16-23",)
 
         self.modules_load = 'source {}/miniapps/mini.env'.format(base)

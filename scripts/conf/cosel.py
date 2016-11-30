@@ -41,7 +41,7 @@ class Cosel(manager.Machine):
 
         common_params = {
             'nodes': (1,),
-            'schedulers': ("cfs", "pinned"),
+            'schedulers': ("cfs", "pinned_blocked", "pinned_cyclic"),
             'affinity': ("2-3", "1,3"),
             'oversub': (1, 2, 4),
             'compile_command': compile_command,
@@ -92,6 +92,7 @@ class Cosel(manager.Machine):
                                compile_flags='-Dfortran=OFF -Dtest=ON')
 
         self.env['INTERFERENCE_LOCALID'] = 'OMPI_COMM_WORLD_LOCAL_RANK'
+        self.env['INTERFERENCE_LOCAL_SIZE'] = 'OMPI_COMM_WORLD_LOCAL_SIZE'
 
         self.prefix = 'INTERFERENCE'
 

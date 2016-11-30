@@ -19,7 +19,7 @@ class Taurus_Mini(manager.Machine):
         nodes = (1, 2, 4, 8, 16)
         cpu_per_node = 24
         oversub_param = {'oversub': (1,),
-                         'schedulers': ("cfs", "pinned")}
+                         'schedulers': ("cfs", "pinned_cyclic")}
         fullsub_param = {'oversub': (2, 4),
                          'schedulers': ("cfs")}
 

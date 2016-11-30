@@ -14,7 +14,7 @@ class Ffmk(manager.Machine):
 
         cpu_per_node = 8
         nodes = (1, 2, 4)
-        schedulers = ("cfs", "pinned")
+        schedulers = ("cfs", "pinned_cyclic")
         affinity = ("4-11",)
 
         def m(x, y):
