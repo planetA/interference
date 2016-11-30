@@ -144,6 +144,12 @@ def parse_args():
                             default='csv',
                             choices=[CsvWriter, JsonWriter],
                             type=Writer.create_writer)
+    run_parser.add_argument('--run-order',
+                            help='Benchmarks of the same group should run consecutively or interleaving each other.',
+                            default='interleave',
+                            choices=['interleave', 'consecutive'],
+                            dest='run_order',
+                            type=str)
 
     compile_parser = \
         commands.add_parser('prepare',

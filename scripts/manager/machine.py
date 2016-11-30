@@ -37,10 +37,18 @@ class Machine:
         return self.get_script_path() + lib.format(self.suffix)
 
     def configurations(self, writer):
-        confs = tuple(
-            itertools.product(self.runs, self.benchmarks))
+        # Depending on if we want run happen consecutively or
+        # interleave each other, we put runs first or second
+        if self.args.run_order == 'interleave':
+            confs = tuple(itertools.product(self.runs, self.benchmarks))
+        else:
+            confs = tuple(itertools.product(self.benchmarks, self.runs))
         res = list()
         for (run, bench) in confs:
+            # We may need to swap run and bench because we put runs
+            # as second parameters two lines above
+            if self.args.run_order == 'consecutive':
+                (run, bench) = (bench, run)
             print(run, bench, bench.affinity)
             env = self.env.copy()
             env['INTERFERENCE_AFFINITY'] = bench.affinity
