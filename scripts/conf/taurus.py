@@ -108,7 +108,7 @@ class Taurus(manager.Machine):
         self.nodelist = self.get_nodelist()
         self.hostfile_dir = os.environ['HOME'] + '/hostfiles'
 
-        super(Taurus, self).__init__(args)
+        super().__init__(args)
 
     def get_nodelist(self):
         p = sp.run('scontrol show hostnames'.split(),
