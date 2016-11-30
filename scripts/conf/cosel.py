@@ -37,6 +37,8 @@ class Cosel(manager.Machine):
             return 'cd {} ;' \
                 ' make {} NPROCS={} CLASS={}'.format(wd, prog, np, size)
 
+        args.run_order = 'consecutive'
+
         common_params = {
             'nodes': (1,),
             'schedulers': ("cfs", "pinned"),
