@@ -86,7 +86,6 @@ class Cosel(manager.Machine):
 
         self.preload = '-x LD_PRELOAD={}'
 
-        self.lib = manager.Lib('openmpi')
         self.lib = manager.Lib('openmpi',
                                compile_flags='-Dfortran=OFF -Dtest=ON')
 
