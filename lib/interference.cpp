@@ -22,7 +22,6 @@
 using json = nlohmann::json;
 
 std::string PREFIX;
-std::string sched;
 std::vector<int> affinity;
 bool mvapich_hack = false;
 
@@ -106,11 +105,6 @@ void parse_env()
   if (!env)
     throw std::runtime_error("INTERFERENCE_PREFIX should be set");
   PREFIX = env;
-
-  auto sched_ptr = std::getenv("INTERFERENCE_SCHED");
-  if (!sched_ptr)
-    throw std::runtime_error("INTERFERENCE_SCHED should be set");
-  sched = std::string(sched_ptr);
 
   auto affinity_ptr = std::getenv("INTERFERENCE_AFFINITY");
   if (!affinity_ptr)
@@ -216,33 +210,38 @@ public:
 };
 
 class CPUaccounter : public SingleCounter<long> {
-  int localid;
-  int block_size;
+  int _localid;
+  int _block_size;
+  std::string _sched;
 public:
   CPUaccounter(int ranks, const std::string &name)
     : SingleCounter(ranks, name),
-      localid(get_indirect_param("INTERFERENCE_LOCALID")),
-      block_size(get_indirect_param("INTERFERENCE_LOCAL_SIZE"))
+      _localid(get_indirect_param("INTERFERENCE_LOCALID")),
+      _block_size(get_indirect_param("INTERFERENCE_LOCAL_SIZE"))
   {
-    if ((block_size == 0) && (sched == "pinned_blocked")) {
+    auto sched_ptr = std::getenv("INTERFERENCE_SCHED");
+    if (!sched_ptr)
+      throw std::runtime_error("INTERFERENCE_SCHED should be set");
+    _sched = std::string(sched_ptr);
+
+    if ((_block_size == 0) && (_sched == "pinned_blocked")) {
       throw std::runtime_error("Scheduler pinned_blocked requires variable"
                                " INTERFERENCE_LOCAL_SIZE to be set");
     }
   }
 
   void start_accounting() {
-    if (sched == "pinned_blocked") {
-      _value = affinity[localid * affinity.size() / block_size];
-      std::cout << localid << " " << block_size << std::endl;
+    if (_sched == "pinned_blocked") {
+      _value = affinity[_localid * affinity.size() / _block_size];
       set_own_affinity(_value);
-    } else if (sched == "pinned_cyclic") {
-      _value = affinity[localid % affinity.size()];
+    } else if (_sched == "pinned_cyclic") {
+      _value = affinity[_localid % affinity.size()];
       set_own_affinity(_value);
-    } else if (sched == "cfs") {
+    } else if (_sched == "cfs") {
       _value = -1;
       set_own_affinity(affinity);
     } else {
-      throw std::runtime_error("Unknown scheduler requested: " + sched);
+      throw std::runtime_error("Unknown scheduler requested: " + _sched);
     }
   }
 };
