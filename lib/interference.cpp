@@ -24,8 +24,28 @@ using json = nlohmann::json;
 std::string PREFIX;
 std::string sched;
 std::vector<int> affinity;
-int localid;
 bool mvapich_hack = false;
+
+/**
+ * Parse integer value from an environment variable, which
+ * environment variable ~reference~ references.
+ * @param reference environment variable with environment variable name
+ * @return value of the indirectly referenced variable
+ */
+static int get_indirect_param(const std::string &reference)
+{
+  int res = 0;
+  auto ref_ptr = std::getenv(reference.c_str());
+  if (ref_ptr) {
+    auto param_ptr = std::getenv(ref_ptr);
+    if (!param_ptr)
+      throw std::runtime_error(reference +
+                               " points to nonexistent variable");
+    res = std::stol(param_ptr);
+  }
+
+  return res;
+}
 
 std::vector<int> parse_affinity(std::string cpu_string)
 {
@@ -96,17 +116,6 @@ void parse_env()
   if (!affinity_ptr)
     throw std::runtime_error("INTERFERENCE_AFFINITY should be set");
   affinity = parse_affinity(affinity_ptr);
-
-  auto localid_name_ptr = std::getenv("INTERFERENCE_LOCALID");
-  if (localid_name_ptr) {
-    auto localid_ptr = std::getenv(localid_name_ptr);
-    if (!localid_ptr)
-      throw std::runtime_error("INTERFERENCE_LOCALID points to nonexistent variable");
-    localid = std::stol(localid_ptr);
-  } else {
-    // Probably this concept makes no sense in here
-    localid = 0;
-  }
 
   if (std::getenv("INTERFERENCE_HACK"))
     mvapich_hack = true;
@@ -194,23 +203,45 @@ public:
 };
 
 class CPUaccounter : public SingleCounter<long> {
+  int localid;
+  int block_size;
 public:
-  using SingleCounter<long>::SingleCounter;
+  CPUaccounter(int ranks, const std::string &name)
+    : SingleCounter(ranks, name),
+      localid(get_indirect_param("INTERFERENCE_LOCALID")),
+      block_size(get_indirect_param("INTERFERENCE_LOCAL_SIZE"))
+  {
+    if ((block_size == 0) && (sched == "pinned_blocked")) {
+      throw std::runtime_error("Scheduler pinned_blocked requires variable"
+                               " INTERFERENCE_LOCAL_SIZE to be set");
+    }
+  }
 
   void start_accounting() {
-    if (sched == "pinned") {
+    if (sched == "pinned_blocked") {
+      _value = affinity[localid * affinity.size() / block_size];
+      std::cout << localid << " " << block_size << std::endl;
+      set_own_affinity(_value);
+    } else if (sched == "pinned_cyclic") {
       _value = affinity[localid % affinity.size()];
       set_own_affinity(_value);
     } else if (sched == "cfs") {
       _value = -1;
       set_own_affinity(affinity);
+    } else {
+      throw std::runtime_error("Unknown scheduler requested: " + sched);
     }
   }
 };
 
 class LocalId : public SingleCounter<long> {
+  int localid;
 public:
-  using SingleCounter<long>::SingleCounter;
+
+  LocalId(int ranks, const std::string &name) :
+    SingleCounter(ranks, name),
+    localid(get_indirect_param("INTERFERENCE_LOCALID"))
+  {}
 
   void start_accounting() {
     _value = localid;
