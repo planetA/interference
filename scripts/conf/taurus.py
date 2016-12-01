@@ -84,23 +84,10 @@ class Taurus(manager.Machine):
                                np=np_square,
                                prog=("bt", "sp"))
 
-        self.mpiexec = 'mpirun_rsh'
-        self.mpiexec_np = '-np'
-        self.mpiexec_hostfile = '-hostfile {}'
+        self.mpilib = Mvapich(mpiexec='mpirun_rsh',
+                              compile_pre=self.modules_load)
 
-        self.preload = 'LD_PRELOAD={}'
-
-        self.lib = manager.Lib('mvapich',
-                               compile_pre=self.modules_load,
-                               compile_flags='-Dfortran=OFF -Dtest=ON')
-
-        self.env = os.environ.copy()
-        self.env['OMP_NUM_THREADS'] = '1'
-        self.env['INTERFERENCE_LOCALID'] = 'MV2_COMM_WORLD_LOCAL_RANK'
-        self.env['INTERFERENCE_HACK'] = 'true'
         self.env['INTERFERENCE_PERF'] = 'instructions,cache_references,cache_misses,migrations,page_faults,context_switches'
-
-        self.prefix = 'INTERFERENCE'
 
         self.runs = (i for i in range(3))
         self.benchmarks = self.group.benchmarks
@@ -118,15 +105,6 @@ class Taurus(manager.Machine):
 
         return p.stdout.decode('UTF-8').splitlines()
 
-    def format_command(self, context):
-        parameters = " ".join([self.mpiexec_hostfile.format(context.hostfile.path),
-                               self.mpiexec_np, str(context.bench.np),
-                               '-ssh',
-                               '-export-all'])
-        command = "{} ; taskset 0xFFFFFFFF {} {} {} ./bin/{}"
-        return command.format(self.modules_load, self.mpiexec, parameters,
-                              self.preload.format(self.get_lib()),
-                              context.bench.name)
 
     def correct_guess():
         if 'taurusi' in socket.gethostname():

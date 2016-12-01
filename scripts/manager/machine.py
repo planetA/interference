@@ -14,6 +14,7 @@ class Machine:
             self.hostfile.f.write(
                 "\n".join(self.machine.nodelist[:self.bench.nodes]) + '\n')
 
+            self.nodestr = self.hostfile.path
             return super().__enter__()
 
     def create_context(self, machine, cfg):

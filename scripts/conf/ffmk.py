@@ -6,11 +6,12 @@ import subprocess as sp
 import manager
 
 from .npb import Npb
-
+from .mvapich import Mvapich
 
 class Ffmk(manager.Machine):
     def __init__(self, args):
-        base = os.environ['HOME'] + '/interference-bench/'
+        self.env = os.environ.copy()
+        base = self.env['HOME'] + '/interference-bench/'
 
         cpu_per_node = 8
         nodes = (1, 2, 4)
@@ -89,23 +90,15 @@ class Ffmk(manager.Machine):
                                         {'np': np_square,
                                          'prog': ("bt", "sp")}))
 
-        self.mpiexec = 'mpirun'
-        self.mpiexec_np = '-np'
-        self.mpiexec_hostfile = '-hosts {}'
+        self.mpilib = Mvapich(mpiexec='mpirun',
+                              compile_pre=self.modules_load)
 
-        self.preload = '-env LD_PRELOAD {}'
-
-        self.lib = manager.Lib('mvapich',
-                               compile_pre=self.modules_load,
-                               compile_flags='-Dfortran=OFF -Dtest=ON')
-
-        self.env = os.environ.copy()
-        self.env['OMP_NUM_THREADS'] = '1'
-        self.env['INTERFERENCE_LOCALID'] = 'MV2_COMM_WORLD_LOCAL_RANK'
-        self.env['INTERFERENCE_HACK'] = 'true'
-        self.env['INTERFERENCE_PERF'] = 'instructions,cache_references,cache_misses,migrations,page_faults,context_switches'
-
-        self.prefix = 'INTERFERENCE'
+        self.env['INTERFERENCE_PERF'] = ','.join(['instructions',
+                                                  'cache_references',
+                                                  'cache_misses',
+                                                  'migrations',
+                                                  'page_faults',
+                                                  'context_switches'])
 
         self.runs = (i for i in range(3))
         self.benchmarks = self.group.benchmarks
@@ -118,16 +111,13 @@ class Ffmk(manager.Machine):
         return 'ffmk-n1 ffmk-n2 ffmk-n3 ffmk-n4'.split()
 
     def create_context(self, machine, cfg):
-        return manager.Context(machine, cfg)
+        class FfmkContext(manager.Context):
+            def __enter__(self):
+                nodes = self.machine.nodelist[:self.bench.nodes]
+                self.nodestr = ",".join(nodes)
+                return super().__enter__()
 
-    def format_command(self, context):
-        nodestr = ",".join(self.nodelist[:context.bench.nodes])
-        parameters = " ".join([self.mpiexec_hostfile.format(nodestr),
-                               self.mpiexec_np, str(context.bench.np)])
-        command = "{} ; taskset 0xFFFFFFFF {} {} {} ./bin/{}"
-        return command.format(self.modules_load, self.mpiexec, parameters,
-                              self.preload.format(self.get_lib()),
-                              context.bench.name)
+        return FfmkContext(machine, cfg)
 
     def correct_guess():
         if 'ffmk-n' in socket.gethostname():
