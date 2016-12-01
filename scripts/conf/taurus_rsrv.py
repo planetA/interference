@@ -6,16 +6,12 @@ import subprocess as sp
 import manager
 
 from .npb import Npb
-
+from .mvapich import Mvapich
 
 class Taurus_Rsrv(manager.Machine):
     def __init__(self, args):
-        base = os.environ['HOME'] + '/interference-bench/'
-
-        cpu_per_node = 16
-        nodes = (2, 4, 8, 16)
-        schedulers = ("cfs", "pinned_cyclic")
-        affinity = ("4-11,16-23",)
+        self.env = os.environ.copy()
+        base = self.env['HOME'] + '/interference-bench/'
 
         self.modules_load = '. {}/mini.env'.format(base)
 
@@ -35,10 +31,15 @@ class Taurus_Rsrv(manager.Machine):
         def np_func(nodes, oversub):
             return nodes * oversub * cpu_per_node
 
+        cpu_per_node = 16
+        nodes = (2, 4, 8)
+        schedulers = ("cfs", "pinned_cyclic", "pinned_blocked")
+        affinity = ("4-11,16-23",)
+
         common_params = {
             'compile_command': compile_command,
             'schedulers': schedulers,
-            'oversub': (2, 4),
+            'oversub': (1, 2, 4),
             'nodes': nodes,
             'affinity' : affinity,
             'size': ('C', 'D',),
@@ -84,22 +85,14 @@ class Taurus_Rsrv(manager.Machine):
                                np=np_square,
                                prog=("bt", "sp"))
 
-        self.mpiexec = 'mpirun'
-        self.mpiexec_np = '-np'
-        self.mpiexec_hostfile = '-hosts {}'
+        self.mpilib = Mvapich(mpiexec='mpirun', compile_pre=self.modules_load)
 
-        self.preload = '-env LD_PRELOAD {}'
-
-        self.lib = manager.Lib('mvapich',
-                               compile_pre=self.modules_load,
-                               compile_flags='-Dfortran=OFF -Dtest=ON')
-
-        self.env = os.environ.copy()
-        self.env['OMP_NUM_THREADS'] = '1'
-        self.env['INTERFERENCE_LOCALID'] = 'MV2_COMM_WORLD_LOCAL_RANK'
-        self.env['INTERFERENCE_HACK'] = 'true'
-
-        self.prefix = 'INTERFERENCE'
+        self.env['INTERFERENCE_PERF'] = ','.join(['instructions',
+                                                  'cache_references',
+                                                  'page_faults',
+                                                  'migrations',
+                                                  'context_switches',
+                                                  'cache_misses',])
 
         self.runs = (i for i in range(3))
         self.benchmarks = self.group.benchmarks
@@ -117,16 +110,13 @@ class Taurus_Rsrv(manager.Machine):
         return p.stdout.decode('UTF-8').split()
 
     def create_context(self, machine, cfg):
-        return manager.Context(machine, cfg)
+        class Context(manager.Context):
+            def __enter__(self):
+                nodes = self.machine.nodelist[:self.bench.nodes]
+                self.nodestr = ",".join(nodes)
+                return super().__enter__()
 
-    def format_command(self, context):
-        nodestr = ",".join(self.nodelist[:context.bench.nodes])
-        parameters = " ".join([self.mpiexec_hostfile.format(nodestr),
-                               self.mpiexec_np, str(context.bench.np)])
-        command = "{} ; taskset 0xFFFFFFFF {} {} {} ./bin/{}"
-        return command.format(self.modules_load, self.mpiexec, parameters,
-                              self.preload.format(self.get_lib()),
-                              context.bench.name)
+        return Context(machine, cfg)
 
     def correct_guess():
         if 'taurusi' in socket.gethostname():
