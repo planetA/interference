@@ -6,11 +6,13 @@ import subprocess as sp
 import manager
 
 from .npb import Npb
+from .mvapich import Mvapich
 
 
 class Taurus(manager.Machine):
     def __init__(self, args):
-        base = os.environ['HOME'] + '/interference-bench/'
+        self.env = os.environ.copy()
+        base = self.env['HOME'] + '/interference-bench/'
 
         cpu_per_node = 16
         nodes = (2, 4, 8, 16)
