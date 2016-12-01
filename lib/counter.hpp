@@ -139,3 +139,24 @@ public:
     return results;
   }
 };
+
+/**
+ * Parse integer value from an environment variable, which
+ * environment variable ~reference~ references.
+ * @param reference environment variable with environment variable name
+ * @return value of the indirectly referenced variable
+ */
+static int get_indirect_param(const std::string &reference)
+{
+  int res = 0;
+  auto ref_ptr = std::getenv(reference.c_str());
+  if (ref_ptr) {
+    auto param_ptr = std::getenv(ref_ptr);
+    if (!param_ptr)
+      throw std::runtime_error(reference +
+                               " points to nonexistent variable");
+    res = std::stol(param_ptr);
+  }
+
+  return res;
+}
