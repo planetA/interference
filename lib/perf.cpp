@@ -55,7 +55,6 @@ void PerfCounter::build_perf_attr(struct perf_event_attr *attr,
   } else if (event == "page_faults") {
     attr->type   = PERF_TYPE_SOFTWARE;
     attr->config = PERF_COUNT_SW_PAGE_FAULTS;
-    attr->exclude_kernel = 0;
   } else if (event == "context_switches") {
     attr->type   = PERF_TYPE_SOFTWARE;
     attr->config = PERF_COUNT_SW_CONTEXT_SWITCHES;
