@@ -1,0 +1,11 @@
+.Rproj.user
+.Rhistory
+.RData
+GPATH
+GRTAGS
+GSYMS
+GTAGS
+build
+__pycache__
+compile*.sh
+runtimes*log
