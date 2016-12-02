@@ -40,7 +40,7 @@ class PlanetaOS(manager.Machine):
 
         common_params = {
             'nodes': (1,),
-            'schedulers': ("cfs", "pinned_cyclic"),
+            'schedulers': ("cfs", "pinned_cyclic", "fifo_cyclic"),
             'affinity': ("2-3", "1,3"),
             'oversub': (1, 2, 4),
             'compile_command': compile_command,

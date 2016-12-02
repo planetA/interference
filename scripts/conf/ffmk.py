@@ -15,8 +15,8 @@ class Ffmk(manager.Machine):
 
         cpu_per_node = 8
         nodes = (1, 2, 4)
-        schedulers = ("cfs", "pinned_cyclic")
-        affinity = ("4-11",)
+        schedulers = ("cfs", "pinned_cyclic", "pinned_blocked", 'fifo_cyclic')
+        affinity = ("0-7","4-7")
 
         def m(x, y):
             z = x.copy()
@@ -44,7 +44,7 @@ class Ffmk(manager.Machine):
         common_params = {
             'compile_command': compile_command,
             'schedulers': schedulers,
-            'oversub': (2, 4),
+            'oversub': (1, 2, 4),
             'nodes': nodes,
             'affinity' : affinity,
             'size': ('B', 'C',),
@@ -95,10 +95,10 @@ class Ffmk(manager.Machine):
 
         self.env['INTERFERENCE_PERF'] = ','.join(['instructions',
                                                   'cache_references',
-                                                  'cache_misses',
-                                                  'migrations',
                                                   'page_faults',
-                                                  'context_switches'])
+                                                  'migrations',
+                                                  'context_switches',
+                                                  'cache_misses',])
 
         self.runs = (i for i in range(3))
         self.benchmarks = self.group.benchmarks

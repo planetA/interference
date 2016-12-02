@@ -33,7 +33,7 @@ class Taurus_Rsrv(manager.Machine):
 
         cpu_per_node = 16
         nodes = (2, 4, 8)
-        schedulers = ("cfs", "pinned_cyclic", "pinned_blocked")
+        schedulers = ("cfs", "pinned_cyclic", "pinned_blocked", "fifo_cyclic")
         affinity = ("4-11,16-23",)
 
         common_params = {
