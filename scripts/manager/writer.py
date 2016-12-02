@@ -45,7 +45,6 @@ class CsvWriter(Writer):
                    map(lambda x: x.split(':'),
                        filter(lambda x: ':' in x,
                               l.split(',')))}
-            print(row)
             self.csv.writerow([bench.prog, bench.nodes, bench.np,
                                bench.size, bench.oversub, run,
                                bench.schedulers, bench.affinity,
@@ -65,7 +64,6 @@ class JsonWriter(Writer):
         self.skiplist = skiplist
 
     def submit(self, run, bench, results):
-        print(results)
         lines = json.loads(results[0])
         for l in lines["INTERFERENCE"]:
             bench_dict = {k : v for (k,v) in bench.__dict__.items() if k not in self.skiplist}
