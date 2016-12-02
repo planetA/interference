@@ -8,7 +8,7 @@
 #include <iterator>
 #include <chrono>
 
-#include <sched.h>
+#include <unistd.h>
 
 #include "interference.h"
 #include "interference_mpi.h"

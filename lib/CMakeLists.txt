@@ -14,7 +14,12 @@ else()
 endif()
 
 if (wrapper)
-  set(SOURCES interference.cpp interference_mpi.c wrappers.c perf.cpp)
+  set(SOURCES
+    interference.cpp
+    interference_mpi.c
+    wrappers.c
+    perf.cpp
+    counters/cpumanager.cpp)
   add_library(interference SHARED ${SOURCES})
   target_compile_definitions(interference PRIVATE PIC)
   set_property(TARGET interference PROPERTY POSITION_INDEPENDENT_CODE TRUE)

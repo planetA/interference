@@ -2,7 +2,7 @@
 #include <string>
 #include <cassert>
 
-#include "counters/cpumanager.hpp"
+std::vector<int> parse_affinity(const std::string &cpu_string);
 
 void cpu_list_test()
 {
