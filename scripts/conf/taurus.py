@@ -86,7 +86,7 @@ class Taurus(manager.Machine):
                                np=np_square,
                                prog=("bt", "sp"))
 
-        self.mpilib = Mvapich(mpiexec='mpirun_rsh',
+        self.mpilib = Mvapich(mpiexec='srun',
                               compile_pre=self.modules_load)
 
         self.env['INTERFERENCE_PERF'] = 'instructions,cache_references,cache_misses,migrations,page_faults,context_switches'
@@ -98,6 +98,26 @@ class Taurus(manager.Machine):
         self.hostfile_dir = os.environ['HOME'] + '/hostfiles'
 
         super().__init__(args)
+
+    def create_context(self, machine, cfg):
+        class Context(manager.Context):
+            def __enter__(self):
+                self.hostfile = self.create_file(
+                    self.machine.hostfile_dir, 'hostfile')
+                self.hostfile.f.write(
+                    "\n".join(self.machine.nodelist[:self.bench.nodes]) + '\n')
+
+                self.nodestr = self.hostfile.path
+
+                preload = 'echo export LD_PRELOAD={}'.format(machine.get_lib())
+                self.prologue = self.create_script(
+                    self.machine.hostfile_dir, 'prologue')
+                self.prologue.f.write(
+                    "\n".join(['#!/bin/bash',
+                               preload]) + '\n')
+                return super().__enter__()
+
+        return Context(machine, cfg)
 
     def get_nodelist(self):
         p = sp.run('scontrol show hostnames'.split(),
