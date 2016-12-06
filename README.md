@@ -49,6 +49,17 @@ You can download ~/interference-bench from erwin: ~mplaneta/interfence-bench
 
 The benchmark directory contains all the benchmarks
 
+### FIFO scheduler
+
+To allow FIFO scheduler, you need to allow it for you user.
+
+For that you need to add following lines into /etc/security/limits.conf:
+
+    <username> soft  nice 20
+    <username> hard  nice 20
+    <username> soft  rtprio 20
+    <username> hard  rtprio 20
+
 ## Supplementary
 
 Following is supplementary scripts I use in my workflow.
